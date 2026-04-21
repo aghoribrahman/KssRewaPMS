@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function getUserData() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    function hasRole(role) { 
+      return isSignedIn() && (
+        (getUserData().data != null && getUserData().data.role == role) || 
+        (role == 'admin' && request.auth.token.email == 'mohit.4033@gmail.com')
+      ); 
+    }
+    function isAdmin() { return hasRole('admin'); }
+    
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // --- User Rules ---
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      // Allow role/district/language update for the demo dashboard role switcher
+      allow update: if isAdmin() || (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'role', 'assignedDistricts', 'preferredLanguage']));
+    }
+
+    // --- Patient Rules ---
+    match /patients/{patientId} {
+      function canAccessDistrict(district) {
+        return isAdmin() || (getUserData().data != null && 'assignedDistricts' in getUserData().data && district in getUserData().data.assignedDistricts);
+      }
+
+      function isValidPatient(data) {
+        return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+            && data.status in ['pending_consultation', 'pending_meal', 'complete']
+            && data.district is string
+            && (data.age == null || data.age is number)
+            && (data.gender == null || data.gender in ['male', 'female', 'other'])
+            && (data.sickleCellStatus == null || data.sickleCellStatus in ['SS', 'AS', 'AA'])
+            && (data.symptoms == null || data.symptoms is list)
+            && (data.counsellingTopics == null || data.counsellingTopics is list);
+      }
+
+      allow read: if isSignedIn() && canAccessDistrict(existing().district);
+
+      allow create: if isSignedIn() 
+                    && (hasRole('registrar') || isAdmin())
+                    && canAccessDistrict(incoming().district)
+                    && isValidPatient(incoming())
+                    && incoming().status == 'pending_consultation'
+                    && incoming().registrarId == request.auth.uid;
+
+      allow update: if isSignedIn() 
+        && canAccessDistrict(existing().district)
+        && (
+        isAdmin() ||
+        // Registrar can update before consultation - added all form fields
+        (hasRole('registrar') && existing().status == 'pending_consultation' && incoming().status == 'pending_consultation' 
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'name', 'age', 'gender', 'contact', 'address', 'district', 'block', 'village', 'abhaId', 'aadharNumber', 
+            'sickleCellStatus', 'preExistingDiagnosis', 'dateOfDiagnosis', 'reportsAttached', 
+            'firstSymptomOnset', 'previousHospitalizations', 'bloodTransfusionsCount', 'otherHealthIssues', 
+            'symptoms', 'otherSymptoms', 'medicationHydroxyurea', 'dosageHydroxyurea', 'medicationFolicAcid', 
+            'dosageFolicAcid', 'otherMedications', 'medicationRegularity', 'dietaryHabit', 'dailyWaterIntake', 
+            'physicalActivity', 'counsellingTopics', 'nutritionKitDistributed', 'nutritionKitDate', 
+            'nutritionKitInstructionsProvided', 'referral', 'feedbackConfirmation', 'specificConcerns', 
+            'counsellorName', 'counsellorDesignation', 'counsellorOrganization', 'updatedAt'
+          ])) ||
+        
+        // Consultant moves to pending_meal - can also update clinical and counselling fields
+        (hasRole('consultant') && existing().status == 'pending_consultation' && incoming().status == 'pending_meal' 
+          && incoming().consultantId == request.auth.uid
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'status', 'consultantAdvice', 'consultantImageUrl', 'consultantId', 'updatedAt',
+            'sickleCellStatus', 'preExistingDiagnosis', 'dateOfDiagnosis', 'reportsAttached', 
+            'firstSymptomOnset', 'previousHospitalizations', 'bloodTransfusionsCount', 'otherHealthIssues', 
+            'symptoms', 'otherSymptoms', 'medicationHydroxyurea', 'dosageHydroxyurea', 'medicationFolicAcid', 
+            'dosageFolicAcid', 'otherMedications', 'medicationRegularity', 'dietaryHabit', 'dailyWaterIntake', 
+            'physicalActivity', 'counsellingTopics', 'nutritionKitDistributed', 'nutritionKitDate', 
+            'nutritionKitInstructionsProvided', 'referral', 'feedbackConfirmation', 'specificConcerns', 
+            'counsellorName', 'counsellorDesignation', 'counsellorOrganization'
+          ])) ||
+          
+        // Meal Distributor completes cycle
+        (hasRole('meal_distributor') && existing().status == 'pending_meal' && incoming().status == 'complete' 
+          && incoming().mealDistributorId == request.auth.uid
+          && (incoming().mealImageUrl == null || incoming().mealImageUrl is string)
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'mealImageUrl', 'mealDistributorNotes', 'mealDistributorId', 'mealServedAt', 'updatedAt']))
+      );
+
+      allow delete: if isAdmin();
+    }
+  }
+}

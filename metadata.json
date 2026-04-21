@@ -1,0 +1,6 @@
+{
+  "name": "CareFlow PMS",
+  "description": "A comprehensive Patient Management System with role-based clinical workflows and real-time status tracking.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": []
+}
