@@ -87,8 +87,8 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
     return lang === 'en' ? 'Good Evening' : 'शुभ संध्या';
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRegister = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!formData.name || !formData.district || !formData.age || !formData.contact || !formData.sickle_cell_status) {
       toast.error(lang === 'en' ? "Please fill all required fields (marked with *)" : "कृपया सभी आवश्यक फ़ील्ड भरें (* से चिह्नित)");
       return;
