@@ -7,21 +7,36 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { ImageUpload } from './ImageUpload';
 import { MADHYA_PRADESH_DISTRICTS } from '../constants/mp_data';
+import { Button } from '@/components/ui/button';
+import { User, Activity, ClipboardCheck, Info, FileText, MapPin } from 'lucide-react';
 
 interface CounsellingFormProps {
   data: Partial<Patient>;
   onChange: (data: Partial<Patient>) => void;
+  onSubmit?: () => void;
+  onCancel?: () => void;
+  submitLabel?: string;
+  cancelLabel?: string;
   readOnly?: boolean;
 }
 
-export function CounsellingForm({ data, onChange, readOnly = false }: CounsellingFormProps) {
+export function CounsellingForm({ 
+  data, 
+  onChange, 
+  onSubmit, 
+  onCancel, 
+  submitLabel = 'Confirm Registration',
+  cancelLabel = 'Cancel',
+  readOnly = false 
+}: CounsellingFormProps) {
   const handleChange = (field: keyof Patient, value: any) => {
     if (readOnly) return;
     onChange({ ...data, [field]: value });
   };
 
-  const handleCheckboxChange = (field: 'symptoms' | 'counsellingTopics' | 'referral', value: string, checked: boolean) => {
+  const handleCheckboxChange = (field: 'symptoms' | 'counselling_topics' | 'referral', value: string, checked: boolean) => {
     if (readOnly) return;
     const current = (data[field] as string[]) || [];
     if (checked) {
@@ -31,596 +46,402 @@ export function CounsellingForm({ data, onChange, readOnly = false }: Counsellin
     }
   };
 
+  const RequiredBadge = () => <span className="text-red-500 ml-1 font-bold">*</span>;
+
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      {/* 1. General Information */}
-      <Card className="rounded-2xl shadow-sm border-neutral-200">
-        <CardHeader className="bg-neutral-50/50 rounded-t-2xl">
-          <CardTitle className="text-lg font-bold text-neutral-800">1. General Information</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label>Patient Name</Label>
-            <Input 
-              value={data.name || ''} 
-              onChange={(e) => handleChange('name', e.target.value)} 
-              disabled={readOnly}
-              placeholder="Full Name"
-              className="rounded-xl"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Age</Label>
-              <Input 
-                type="number"
-                value={data.age || ''} 
-                onChange={(e) => handleChange('age', parseInt(e.target.value))} 
-                disabled={readOnly}
-                placeholder="Years"
-                className="rounded-xl"
+    <div className="space-y-12 w-full pb-12">
+      {/* 1. IDENTITY & CONTACT */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 text-primary font-black text-sm uppercase tracking-widest px-4">
+          <User className="w-4 h-4" /> 1. Identity & Contact
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-1 space-y-4">
+              <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Patient Photograph</Label>
+              <ImageUpload 
+                folder="patients" 
+                onUploadComplete={(url) => handleChange('registrar_image_url', url)}
+                label="Capture Photo"
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Gender</Label>
-              <Select 
-                value={data.gender || ''} 
-                onValueChange={(val) => handleChange('gender', val)}
-                disabled={readOnly}
-              >
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider flex items-center gap-1 mb-2">
+                  <Info className="w-3 h-3" /> Quick Guidance
+                </p>
+                <p className="text-xs text-blue-800 leading-relaxed">
+                  Ensure the patient's face is clearly visible. This photo helps in future identification at the hospital.
+                </p>
+              </div>
           </div>
-          <div className="space-y-2">
-            <Label>Mobile Number</Label>
-            <Input 
-              value={data.contact || ''} 
-              onChange={(e) => handleChange('contact', e.target.value)} 
-              disabled={readOnly}
-              placeholder="+91-0000000000"
-              className="rounded-xl"
-            />
+
+          <div className="md:col-span-2 space-y-8">
+            <Card className="rounded-[2.5rem] border-none premium-shadow bg-white overflow-hidden">
+              <CardHeader className="bg-neutral-50/50 p-8 border-b border-neutral-100">
+                <CardTitle className="text-xl font-black text-neutral-900 tracking-tight">Basic Information</CardTitle>
+              </CardHeader>
+              <CardContent className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Full Name <RequiredBadge /></Label>
+                  <Input 
+                    value={data.name || ''} 
+                    onChange={(e) => handleChange('name', e.target.value)} 
+                    disabled={readOnly}
+                    placeholder="e.g. Rahul Kumar"
+                    className="rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Age <RequiredBadge /></Label>
+                    <Input 
+                      type="number"
+                      value={data.age || ''} 
+                      onChange={(e) => handleChange('age', parseInt(e.target.value))} 
+                      disabled={readOnly}
+                      placeholder="Years"
+                      className="rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Gender</Label>
+                    <Select 
+                      value={data.gender || ''} 
+                      onValueChange={(val) => handleChange('gender', val)}
+                      disabled={readOnly}
+                    >
+                      <SelectTrigger className="rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-neutral-100">
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Mobile Number <RequiredBadge /></Label>
+                  <Input 
+                    value={data.contact || ''} 
+                    onChange={(e) => handleChange('contact', e.target.value)} 
+                    disabled={readOnly}
+                    placeholder="10-digit number"
+                    maxLength={10}
+                    className="rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">ABHA ID / Aadhaar</Label>
+                  <Input 
+                    value={data.abha_id || ''} 
+                    onChange={(e) => handleChange('abha_id', e.target.value)} 
+                    disabled={readOnly}
+                    placeholder="Identification Number"
+                    className="rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[2.5rem] border-none premium-shadow bg-white overflow-hidden">
+              <CardHeader className="bg-neutral-50/50 p-8 border-b border-neutral-100">
+                <CardTitle className="text-xl font-black text-neutral-900 tracking-tight">Location Details</CardTitle>
+              </CardHeader>
+              <CardContent className="p-8 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">District <RequiredBadge /></Label>
+                    <Select 
+                      value={data.district || ''} 
+                      onValueChange={(val) => handleChange('district', val)}
+                      disabled={readOnly}
+                    >
+                      <SelectTrigger className="rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium">
+                        <SelectValue placeholder="Select District" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-neutral-100">
+                        {MADHYA_PRADESH_DISTRICTS.map(d => (
+                          <SelectItem key={d} value={d}>{d}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Block / Tehsil</Label>
+                    <Input 
+                      value={data.block || ''} 
+                      onChange={(e) => handleChange('block', e.target.value)} 
+                      disabled={readOnly}
+                      placeholder="e.g. Rewa"
+                      className="rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Village</Label>
+                    <Input 
+                      value={data.village || ''} 
+                      onChange={(e) => handleChange('village', e.target.value)} 
+                      disabled={readOnly}
+                      placeholder="Village name"
+                      className="rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Postal Address</Label>
+                    <Input 
+                      value={data.address || ''} 
+                      onChange={(e) => handleChange('address', e.target.value)} 
+                      disabled={readOnly}
+                      placeholder="House no, Street"
+                      className="rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          <div className="space-y-2">
-            <Label>Identification Number (ABHA ID / Aadhaar)</Label>
-            <Input 
-              value={data.abhaId || data.aadharNumber || ''} 
-              onChange={(e) => handleChange('abhaId', e.target.value)} 
-              disabled={readOnly}
-              placeholder="ABHA ID or Aadhaar"
-              className="rounded-xl"
-            />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Address</Label>
-            <Textarea 
-              value={data.address || ''} 
-              onChange={(e) => handleChange('address', e.target.value)} 
-              disabled={readOnly}
-              placeholder="Current Residence"
-              className="rounded-xl resize-none"
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-4 md:col-span-2">
-            <div className="space-y-2">
-              <Label>District</Label>
-              <Select 
-                value={data.district || ''} 
-                onValueChange={(val) => handleChange('district', val)}
-                disabled={readOnly}
-              >
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="District" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MADHYA_PRADESH_DISTRICTS.map(d => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
+        </div>
+      </div>
+
+      {/* 2. MEDICAL DATA */}
+      <div className="space-y-6 pt-6 border-t border-neutral-100">
+        <div className="flex items-center gap-2 text-primary font-black text-sm uppercase tracking-widest px-4">
+          <Activity className="w-4 h-4" /> 2. Medical Data
+        </div>
+        <div className="space-y-8">
+          <Card className="rounded-[2.5rem] border-none premium-shadow bg-white overflow-hidden">
+            <CardHeader className="bg-neutral-50/50 p-8 border-b border-neutral-100">
+              <CardTitle className="text-xl font-black text-neutral-900 tracking-tight">Clinical Diagnosis</CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 space-y-10">
+              <div className="space-y-4">
+                <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Sickle Cell Status <RequiredBadge /></Label>
+                <RadioGroup 
+                  value={data.sickle_cell_status || ''} 
+                  onValueChange={(val) => handleChange('sickle_cell_status', val as SickleCellStatus)}
+                  disabled={readOnly}
+                  className="flex flex-wrap gap-6"
+                >
+                  {['SS', 'AS', 'AA'].map(status => (
+                    <div key={status} className="flex items-center space-x-3 p-4 px-6 bg-neutral-50 rounded-2xl hover:bg-neutral-100 transition-all cursor-pointer">
+                      <RadioGroupItem value={status} id={status} className="w-5 h-5 border-2 border-primary" />
+                      <Label htmlFor={status} className="font-black text-lg cursor-pointer text-neutral-800">{status}</Label>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Block</Label>
-              <Input 
-                value={data.block || ''} 
-                onChange={(e) => handleChange('block', e.target.value)} 
-                disabled={readOnly}
-                placeholder="Block"
-                className="rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Village</Label>
-              <Input 
-                value={data.village || ''} 
-                onChange={(e) => handleChange('village', e.target.value)} 
-                disabled={readOnly}
-                placeholder="Village"
-                className="rounded-xl"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+                </RadioGroup>
+              </div>
 
-      {/* 2. Medical Information */}
-      <Card className="rounded-2xl shadow-sm border-neutral-200">
-        <CardHeader className="bg-neutral-50/50 rounded-t-2xl">
-          <CardTitle className="text-lg font-bold text-neutral-800">2. Medical Information</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 space-y-6">
-          <div className="space-y-3">
-            <Label>Sickle Cell Status</Label>
-            <RadioGroup 
-              value={data.sickleCellStatus || ''} 
-              onValueChange={(val) => handleChange('sickleCellStatus', val as SickleCellStatus)}
-              disabled={readOnly}
-              className="flex gap-6"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="SS" id="ss" />
-                <Label htmlFor="ss">SS (Positive)</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="AS" id="as" />
-                <Label htmlFor="as">AS (Trait)</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="AA" id="aa" />
-                <Label htmlFor="aa">AA (Negative)</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-neutral-100">
-            <div className="space-y-3">
-              <Label>Pre-existing Diagnosis?</Label>
-              <RadioGroup 
-                value={data.preExistingDiagnosis ? 'yes' : 'no'} 
-                onValueChange={(val) => handleChange('preExistingDiagnosis', val === 'yes')}
-                disabled={readOnly}
-                className="flex gap-6"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="yes" id="diag-yes" />
-                  <Label htmlFor="diag-yes">Yes</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-10 border-t border-neutral-100">
+                <div className="space-y-4">
+                  <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Pre-existing Diagnosis?</Label>
+                  <RadioGroup 
+                    value={data.pre_existing_diagnosis ? 'yes' : 'no'} 
+                    onValueChange={(val) => handleChange('pre_existing_diagnosis', val === 'yes')}
+                    disabled={readOnly}
+                    className="flex gap-8"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem value="yes" id="diag-yes" className="w-5 h-5" />
+                      <Label htmlFor="diag-yes" className="font-bold text-neutral-700">Yes, already diagnosed</Label>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem value="no" id="diag-no" className="w-5 h-5" />
+                      <Label htmlFor="diag-no" className="font-bold text-neutral-700">No, first time</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="no" id="diag-no" />
-                  <Label htmlFor="diag-no">No</Label>
+                <div className="space-y-3">
+                  <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Date of Diagnosis (if known)</Label>
+                  <Input 
+                    type="date"
+                    value={data.date_of_diagnosis || ''} 
+                    onChange={(e) => handleChange('date_of_diagnosis', e.target.value)} 
+                    disabled={readOnly || !data.pre_existing_diagnosis}
+                    className="rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium"
+                  />
                 </div>
-              </RadioGroup>
-            </div>
-            <div className="space-y-2">
-              <Label>Date of Diagnosis (if Yes)</Label>
-              <Input 
-                type="date"
-                value={data.dateOfDiagnosis || ''} 
-                onChange={(e) => handleChange('dateOfDiagnosis', e.target.value)} 
-                disabled={readOnly || !data.preExistingDiagnosis}
-                className="rounded-xl"
-              />
-            </div>
-            <div className="space-y-3">
-              <Label>Previous Reports Attached?</Label>
-              <RadioGroup 
-                value={data.reportsAttached ? 'yes' : 'no'} 
-                onValueChange={(val) => handleChange('reportsAttached', val === 'yes')}
-                disabled={readOnly}
-                className="flex gap-6"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="yes" id="reports-yes" />
-                  <Label htmlFor="reports-yes">Yes</Label>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[2.5rem] border-none premium-shadow bg-white overflow-hidden">
+            <CardHeader className="bg-neutral-50/50 p-8 border-b border-neutral-100">
+              <CardTitle className="text-xl font-black text-neutral-900 tracking-tight">Symptoms & History</CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 space-y-10">
+              <div className="space-y-6">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Current Physical Symptoms</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    'Bone / Joint Pain',
+                    'Recurring Fever',
+                    'Difficulty Breathing',
+                    'Yellowish Eyes/Skin',
+                    'Fatigue / Weakness'
+                  ].map((symptom) => (
+                    <div key={symptom} className={`flex items-center space-x-4 p-5 rounded-2xl transition-all duration-300 border-2 ${
+                      data.symptoms?.includes(symptom) 
+                      ? 'bg-primary/5 border-primary/20 shadow-lg shadow-primary/5' 
+                      : 'bg-neutral-50 border-transparent hover:border-neutral-200'
+                    }`}>
+                      <Checkbox 
+                        id={symptom} 
+                        checked={!!(data.symptoms?.includes(symptom))}
+                        onCheckedChange={(checked) => handleCheckboxChange('symptoms', symptom, !!checked)}
+                        disabled={readOnly}
+                        className="w-5 h-5 rounded-md"
+                      />
+                      <Label htmlFor={symptom} className="cursor-pointer text-sm font-bold text-neutral-800">{symptom}</Label>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="no" id="reports-no" />
-                  <Label htmlFor="reports-no">No</Label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-10 border-t border-neutral-100">
+                <div className="space-y-4">
+                   <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Previous Hospitalizations?</Label>
+                   <RadioGroup 
+                    value={data.previous_hospitalizations ? 'yes' : 'no'} 
+                    onValueChange={(val) => handleChange('previous_hospitalizations', val === 'yes')}
+                    disabled={readOnly}
+                    className="flex gap-8"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem value="yes" id="hosp-yes" className="w-5 h-5" />
+                      <Label htmlFor="hosp-yes" className="font-bold text-neutral-700">Yes</Label>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem value="no" id="hosp-no" className="w-5 h-5" />
+                      <Label htmlFor="hosp-no" className="font-bold text-neutral-700">No</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
-              </RadioGroup>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+                <div className="space-y-3">
+                  <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Blood Transfusions (approx count)</Label>
+                  <Input 
+                    type="number"
+                    value={data.blood_transfusions_count || 0} 
+                    onChange={(e) => handleChange('blood_transfusions_count', parseInt(e.target.value))} 
+                    disabled={readOnly}
+                    className="rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-      {/* 3. Medical History */}
-      <Card className="rounded-2xl shadow-sm border-neutral-200">
-        <CardHeader className="bg-neutral-50/50 rounded-t-2xl">
-          <CardTitle className="text-lg font-bold text-neutral-800">3. Medical History</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label>Onset of First Symptoms</Label>
-            <Input 
-              type="date"
-              value={data.firstSymptomOnset || ''} 
-              onChange={(e) => handleChange('firstSymptomOnset', e.target.value)} 
-              disabled={readOnly}
-              className="rounded-xl"
-            />
-          </div>
-          <div className="space-y-3">
-            <Label>Previous Hospitalizations?</Label>
-            <RadioGroup 
-              value={data.previousHospitalizations ? 'yes' : 'no'} 
-              onValueChange={(val) => handleChange('previousHospitalizations', val === 'yes')}
-              disabled={readOnly}
-              className="flex gap-6"
+      {/* 3. SUPPORT & FEEDBACK */}
+      <div className="space-y-6 pt-6 border-t border-neutral-100">
+        <div className="flex items-center gap-2 text-primary font-black text-sm uppercase tracking-widest px-4">
+          <ClipboardCheck className="w-4 h-4" /> 3. Support & Feedback
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <Card className="rounded-[2.5rem] border-none premium-shadow bg-white overflow-hidden">
+            <CardHeader className="bg-neutral-50/50 p-8 border-b border-neutral-100">
+              <CardTitle className="text-xl font-black text-neutral-900 tracking-tight">Counselling & Kits</CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 space-y-8">
+               <div className="space-y-6">
+                <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Topics Discussed</Label>
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
+                  {[
+                    'Basic information on SCD',
+                    'Symptom identification',
+                    'Importance of Diet',
+                    'Regular check-ups',
+                    'Medication regularity',
+                    'Nutrition Kit instructions'
+                  ].map((topic) => (
+                    <div key={topic} className={`flex items-center space-x-4 p-4 rounded-2xl transition-all ${
+                      data.counselling_topics?.includes(topic) ? 'bg-primary/5' : 'hover:bg-neutral-50'
+                    }`}>
+                      <Checkbox 
+                        id={topic} 
+                        checked={!!(data.counselling_topics?.includes(topic))}
+                        onCheckedChange={(checked) => handleCheckboxChange('counselling_topics', topic, !!checked)}
+                        disabled={readOnly}
+                        className="w-5 h-5 rounded-md"
+                      />
+                      <Label htmlFor={topic} className="text-sm font-bold text-neutral-700 cursor-pointer">{topic}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-8 border-t border-neutral-100 flex items-center justify-between">
+                 <div className="space-y-1">
+                    <Label className="text-base font-black text-neutral-900">Meal Box Required?</Label>
+                    <p className="text-xs text-neutral-500 font-medium">Add patient to the distribution queue</p>
+                 </div>
+                 <Checkbox 
+                    id="meal-req" 
+                    checked={!!data.meal_required}
+                    onCheckedChange={(checked) => handleChange('meal_required', !!checked)}
+                    disabled={readOnly}
+                    className="w-8 h-8 rounded-xl border-2"
+                  />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[2.5rem] border-none premium-shadow bg-white overflow-hidden">
+            <CardHeader className="bg-neutral-50/50 p-8 border-b border-neutral-100">
+              <CardTitle className="text-xl font-black text-neutral-900 tracking-tight">Feedback & Concerns</CardTitle>
+            </CardHeader>
+            <CardContent className="p-8 space-y-8">
+              <div className="space-y-4">
+                <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Specific Concerns or Questions</Label>
+                <Textarea 
+                  value={data.specific_concerns || ''} 
+                  onChange={(e) => handleChange('specific_concerns', e.target.value)} 
+                  disabled={readOnly}
+                  placeholder="Enter any questions patient had..."
+                  className="rounded-2xl min-h-[160px] border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium p-6 resize-none"
+                />
+              </div>
+              <div className="flex items-center space-x-4 p-6 bg-primary/5 border border-primary/10 rounded-[2rem]">
+                <Checkbox 
+                  id="feed-confirm" 
+                  checked={!!data.feedback_confirmation}
+                  onCheckedChange={(checked) => handleChange('feedback_confirmation', !!checked)}
+                  disabled={readOnly}
+                  className="w-6 h-6 rounded-lg"
+                />
+                <Label htmlFor="feed-confirm" className="text-sm font-bold text-primary leading-snug cursor-pointer">
+                  Patient/Guardian confirms they understood all medical and dietary instructions provided.
+                </Label>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* 4. ACTIONS */}
+      {!readOnly && (onSubmit || onCancel) && (
+        <div className="flex justify-end gap-3 pt-12 border-t border-neutral-100">
+          {onCancel && (
+            <Button 
+              variant="outline" 
+              onClick={onCancel} 
+              className="rounded-xl h-12 px-8 text-sm font-bold border-neutral-200 hover:bg-neutral-50"
             >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="yes" id="hosp-yes" />
-                <Label htmlFor="hosp-yes">Yes</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="no" id="hosp-no" />
-                <Label htmlFor="hosp-no">No</Label>
-              </div>
-            </RadioGroup>
-          </div>
-          <div className="space-y-2">
-            <Label>Number of Blood Transfusions</Label>
-            <Input 
-              type="number"
-              value={data.bloodTransfusionsCount || 0} 
-              onChange={(e) => handleChange('bloodTransfusionsCount', parseInt(e.target.value))} 
-              disabled={readOnly}
-              className="rounded-xl"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Other Health Issues</Label>
-            <Input 
-              value={data.otherHealthIssues || ''} 
-              onChange={(e) => handleChange('otherHealthIssues', e.target.value)} 
-              disabled={readOnly}
-              placeholder="e.g. Asthma, Diabetes"
-              className="rounded-xl"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 4. Present Symptoms */}
-      <Card className="rounded-2xl shadow-sm border-neutral-200">
-        <CardHeader className="bg-neutral-50/50 rounded-t-2xl">
-          <CardTitle className="text-lg font-bold text-neutral-800">4. Present Symptoms</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              'Bone / Joint Pain',
-              'Recurring Fever',
-              'Difficulty Breathing',
-              'Yellowish Discoloration of Eyes/Skin',
-              'Fatigue / Weakness'
-            ].map((symptom) => (
-              <div key={symptom} className="flex items-center space-x-2">
-                <Checkbox 
-                  id={symptom} 
-                  checked={!!(data.symptoms?.includes(symptom))}
-                  onCheckedChange={(checked) => handleCheckboxChange('symptoms', symptom, !!checked)}
-                  disabled={readOnly}
-                />
-                <Label htmlFor={symptom}>{symptom}</Label>
-              </div>
-            ))}
-          </div>
-          <div className="space-y-2 pt-2">
-            <Label>Other Symptoms</Label>
-            <Input 
-              value={data.otherSymptoms || ''} 
-              onChange={(e) => handleChange('otherSymptoms', e.target.value)} 
-              disabled={readOnly}
-              placeholder="Describe if any"
-              className="rounded-xl"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 5. Current Medication & Treatment */}
-      <Card className="rounded-2xl shadow-sm border-neutral-200">
-        <CardHeader className="bg-neutral-50/50 rounded-t-2xl">
-          <CardTitle className="text-lg font-bold text-neutral-800">5. Current Medication & Treatment</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="hydroxyurea" 
-                  checked={!!data.medicationHydroxyurea}
-                  onCheckedChange={(checked) => handleChange('medicationHydroxyurea', !!checked)}
-                  disabled={readOnly}
-                />
-                <Label htmlFor="hydroxyurea">Hydroxyurea</Label>
-              </div>
-              <Input 
-                placeholder="Dosage" 
-                value={data.dosageHydroxyurea || ''}
-                onChange={(e) => handleChange('dosageHydroxyurea', e.target.value)}
-                disabled={readOnly || !data.medicationHydroxyurea}
-                className="rounded-xl"
-              />
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="folicacid" 
-                  checked={!!data.medicationFolicAcid}
-                  onCheckedChange={(checked) => handleChange('medicationFolicAcid', !!checked)}
-                  disabled={readOnly}
-                />
-                <Label htmlFor="folicacid">Folic Acid</Label>
-              </div>
-              <Input 
-                placeholder="Dosage" 
-                value={data.dosageFolicAcid || ''}
-                onChange={(e) => handleChange('dosageFolicAcid', e.target.value)}
-                disabled={readOnly || !data.medicationFolicAcid}
-                className="rounded-xl"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Other Medications</Label>
-            <Input 
-              value={data.otherMedications || ''} 
-              onChange={(e) => handleChange('otherMedications', e.target.value)} 
-              disabled={readOnly}
-              className="rounded-xl"
-            />
-          </div>
-          <div className="flex items-center space-x-2 pt-2 border-t border-neutral-100 mt-4">
-            <Checkbox 
-              id="regular-meds" 
-              checked={!!data.medicationRegularity}
-              onCheckedChange={(checked) => handleChange('medicationRegularity', !!checked)}
-              disabled={readOnly}
-            />
-            <Label htmlFor="regular-meds">Are you taking medications regularly?</Label>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 6. Diet & Lifestyle */}
-      <Card className="rounded-2xl shadow-sm border-neutral-200">
-        <CardHeader className="bg-neutral-50/50 rounded-t-2xl">
-          <CardTitle className="text-lg font-bold text-neutral-800">6. Diet & Lifestyle</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-3">
-            <Label>Dietary Habit</Label>
-            <RadioGroup 
-              value={data.dietaryHabit || ''} 
-              onValueChange={(val) => handleChange('dietaryHabit', val)}
-              disabled={readOnly}
-              className="flex gap-6"
+              {cancelLabel}
+            </Button>
+          )}
+          {onSubmit && (
+            <Button 
+              onClick={onSubmit} 
+              className="rounded-xl h-12 px-10 text-sm font-bold shadow-xl shadow-primary/20 bg-primary hover:scale-[1.02] transition-transform"
             >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Balanced" id="bal" />
-                <Label htmlFor="bal">Balanced</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Unbalanced" id="unbal" />
-                <Label htmlFor="unbal">Unbalanced</Label>
-              </div>
-            </RadioGroup>
-          </div>
-          <div className="space-y-2">
-            <Label>Daily Water Intake (Liters)</Label>
-            <Input 
-              value={data.dailyWaterIntake || ''} 
-              onChange={(e) => handleChange('dailyWaterIntake', e.target.value)} 
-              disabled={readOnly}
-              placeholder="e.g. 3 Liters"
-              className="rounded-xl"
-            />
-          </div>
-          <div className="space-y-3">
-            <Label>Physical Activity / Exercise</Label>
-            <RadioGroup 
-              value={data.physicalActivity || ''} 
-              onValueChange={(val) => handleChange('physicalActivity', val)}
-              disabled={readOnly}
-              className="flex gap-6"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Regular" id="act-reg" />
-                <Label htmlFor="act-reg">Regular</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="None" id="act-none" />
-                <Label htmlFor="act-none">None</Label>
-              </div>
-            </RadioGroup>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 7. Counselling Topics */}
-      <Card className="rounded-2xl shadow-sm border-neutral-200">
-        <CardHeader className="bg-neutral-50/50 rounded-t-2xl">
-          <CardTitle className="text-lg font-bold text-neutral-800">7. Counselling Topics Discussed</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              'Basic information on SCD',
-              'Symptom identification & management',
-              'Importance of Diet & Nutrition',
-              'Pre-marital / Genetic Counselling',
-              'Regular check-ups & Blood tests',
-              'Importance of Medication (SCD specific)',
-              'Vaccination (Pneumococcal / Influenza)',
-              'Guidance on Hospital Care during crisis',
-              'Information about the provided Nutrition Kit'
-            ].map((topic) => (
-              <div key={topic} className="flex items-center space-x-2">
-                <Checkbox 
-                  id={topic} 
-                  checked={!!(data.counsellingTopics?.includes(topic))}
-                  onCheckedChange={(checked) => handleCheckboxChange('counsellingTopics', topic, !!checked)}
-                  disabled={readOnly}
-                />
-                <Label htmlFor={topic}>{topic}</Label>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 8. Nutrition Kit */}
-      <Card className="rounded-2xl shadow-sm border-neutral-200">
-        <CardHeader className="bg-neutral-50/50 rounded-t-2xl">
-          <CardTitle className="text-lg font-bold text-neutral-800">8. Nutrition Kit Distribution</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-3">
-            <Label>Kit Distributed?</Label>
-            <RadioGroup 
-              value={data.nutritionKitDistributed ? 'yes' : 'no'} 
-              onValueChange={(val) => handleChange('nutritionKitDistributed', val === 'yes')}
-              disabled={readOnly}
-              className="flex gap-6"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="yes" id="kit-yes" />
-                <Label htmlFor="kit-yes">Yes</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="no" id="kit-no" />
-                <Label htmlFor="kit-no">No</Label>
-              </div>
-            </RadioGroup>
-          </div>
-          <div className="space-y-2">
-            <Label>Date of Distribution</Label>
-            <Input 
-              type="date"
-              value={data.nutritionKitDate || ''} 
-              onChange={(e) => handleChange('nutritionKitDate', e.target.value)} 
-              disabled={readOnly || !data.nutritionKitDistributed}
-              className="rounded-xl"
-            />
-          </div>
-          <div className="flex items-center space-x-2 md:col-span-2 pt-4 border-t border-neutral-100">
-            <Checkbox 
-              id="meal-req" 
-              checked={!!data.mealRequired}
-              onCheckedChange={(checked) => handleChange('mealRequired', !!checked)}
-              disabled={readOnly}
-            />
-            <Label htmlFor="meal-req" className="font-bold text-primary">Meal Box Required for this Visit?</Label>
-          </div>
-          <div className="flex items-center space-x-2 md:col-span-2">
-            <Checkbox 
-              id="kit-guide" 
-              checked={!!data.nutritionKitInstructionsProvided}
-              onCheckedChange={(checked) => handleChange('nutritionKitInstructionsProvided', !!checked)}
-              disabled={readOnly}
-            />
-            <Label htmlFor="kit-guide">Instructions on Use of Kit Contents Provided?</Label>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 9. Referral */}
-      <Card className="rounded-2xl shadow-sm border-neutral-200">
-        <CardHeader className="bg-neutral-50/50 rounded-t-2xl">
-          <CardTitle className="text-lg font-bold text-neutral-800">9. Referral (if Required)</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
-          <div className="flex flex-wrap gap-6">
-            {[
-              'Laboratory / Pathological Tests',
-              'Hospital Admission (Crisis Management)',
-              'Specialist Consultation'
-            ].map((ref) => (
-              <div key={ref} className="flex items-center space-x-2">
-                <Checkbox 
-                  id={ref} 
-                  checked={!!(data.referral?.includes(ref))}
-                  onCheckedChange={(checked) => handleCheckboxChange('referral', ref, !!checked)}
-                  disabled={readOnly}
-                />
-                <Label htmlFor={ref}>{ref}</Label>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 10. Feedback */}
-      <Card className="rounded-2xl shadow-sm border-neutral-200">
-        <CardHeader className="bg-neutral-50/50 rounded-t-2xl">
-          <CardTitle className="text-lg font-bold text-neutral-800">10. Feedback & Understanding</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 space-y-6">
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="feed-confirm" 
-              checked={!!data.feedbackConfirmation}
-              onCheckedChange={(checked) => handleChange('feedbackConfirmation', !!checked)}
-              disabled={readOnly}
-            />
-            <Label htmlFor="feed-confirm">I (Patient/Guardian) have understood the information and instructions provided during the session.</Label>
-          </div>
-          <div className="space-y-2">
-            <Label>Specific Concerns or Questions</Label>
-            <Textarea 
-              value={data.specificConcerns || ''} 
-              onChange={(e) => handleChange('specificConcerns', e.target.value)} 
-              disabled={readOnly}
-              className="rounded-xl resize-none"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 11. Counsellor Details */}
-      <Card className="rounded-2xl shadow-sm border-neutral-200">
-        <CardHeader className="bg-neutral-50/50 rounded-t-2xl">
-          <CardTitle className="text-lg font-bold text-neutral-800">11. Counsellor Details</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <Label>Name of Counsellor</Label>
-            <Input 
-              value={data.counsellorName || ''} 
-              onChange={(e) => handleChange('counsellorName', e.target.value)} 
-              disabled={readOnly}
-              className="rounded-xl"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Designation</Label>
-            <Input 
-              value={data.counsellorDesignation || ''} 
-              onChange={(e) => handleChange('counsellorDesignation', e.target.value)} 
-              disabled={readOnly}
-              className="rounded-xl"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Organization (Default: Kiran Sewa Sansthan)</Label>
-            <Input 
-              value={data.counsellorOrganization || 'Kiran Sewa Sansthan'} 
-              onChange={(e) => handleChange('counsellorOrganization', e.target.value)} 
-              disabled={readOnly}
-              className="rounded-xl"
-            />
-          </div>
-        </CardContent>
-      </Card>
+              <MapPin className="w-4 h-4 mr-2" />
+              {submitLabel}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
+

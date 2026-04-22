@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import { db } from '../../lib/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { Patient } from '../../types';
+import { usePatients } from '../../hooks/usePatients';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,72 +15,56 @@ import { ImageUpload } from '../ImageUpload';
 import { toast } from 'sonner';
 import { MADHYA_PRADESH_DISTRICTS, TRANSLATIONS } from '../../constants/mp_data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Search, UserPlus, Clock, ClipboardList, MapPin } from 'lucide-react';
+import { PlusCircle, Search, UserPlus, Clock, ClipboardList, MapPin, Users, Activity, CheckCircle, TrendingUp, ArrowLeft } from 'lucide-react';
 
 import { CounsellingForm } from '../CounsellingForm';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-export default function RegistrarDashboard() {
+interface RegistrarDashboardProps {
+  onImmersiveChange?: (immersive: boolean) => void;
+}
+
+export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashboardProps) {
   const { user, profile } = useAuth();
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const { patients, loading } = usePatients({ limit: 50, realtime: true });
   const [searchQuery, setSearchQuery] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 7;
-  const lang = profile?.preferredLanguage || 'hi';
+
+  const lang = profile?.preferred_language || 'hi';
   const t = TRANSLATIONS[lang];
+
+  useEffect(() => {
+    if (onImmersiveChange) {
+      onImmersiveChange(isRegistering);
+    }
+  }, [isRegistering, onImmersiveChange]);
 
   const [formData, setFormData] = useState<Partial<Patient>>({
     name: '',
     age: 0,
     contact: '',
-    district: profile?.assignedDistricts?.[0] || '',
+    district: profile?.assigned_districts?.[0] || '',
     status: 'pending_consultation',
     gender: 'male',
     address: '',
     block: '',
     village: '',
-    sickleCellStatus: 'AS',
-    preExistingDiagnosis: false,
-    reportsAttached: false,
+    sickle_cell_status: 'AS',
+    pre_existing_diagnosis: false,
+    reports_attached: false,
     symptoms: [],
-    medicationHydroxyurea: false,
-    medicationFolicAcid: false,
-    counsellingTopics: [],
-    nutritionKitDistributed: false,
-    mealRequired: true,
+    medication_hydroxyurea: false,
+    medication_folic_acid: false,
+    counselling_topics: [],
+    nutrition_kit_distributed: false,
+    meal_required: true,
     referral: [],
   });
 
-  useEffect(() => {
-    if (!profile) return;
-
-    let q = query(
-      collection(db, 'patients'),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
-
-    // District-level RBAC filtering
-    if (profile.role !== 'admin' && profile.assignedDistricts && profile.assignedDistricts.length > 0) {
-      q = query(
-        collection(db, 'patients'),
-        where('district', 'in', profile.assignedDistricts),
-        orderBy('createdAt', 'desc'),
-        limit(20)
-      );
-    }
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Patient));
-      setPatients(data);
-    });
-
-    return unsubscribe;
-  }, [profile]);
-
-  const filteredPatients = patients.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredPatients = patients.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.contact.includes(searchQuery)
   );
 
@@ -88,44 +72,70 @@ export default function RegistrarDashboard() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedPatients = filteredPatients.slice(startIndex, startIndex + itemsPerPage);
 
+  const todayRegistrations = patients.filter(p => {
+    const today = new Date();
+    const patientDate = new Date(p.created_at);
+    return patientDate.toDateString() === today.toDateString();
+  }).length;
+
+  const pendingConsultations = patients.filter(p => p.status === 'pending_consultation').length;
+
+  const getTimeGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return lang === 'en' ? 'Good Morning' : 'शुभ प्रभात';
+    if (hour < 17) return lang === 'en' ? 'Good Afternoon' : 'शुभ दोपहर';
+    return lang === 'en' ? 'Good Evening' : 'शुभ संध्या';
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.district) {
-      toast.error(lang === 'en' ? "Please fill name and district" : "कृपया नाम और जिला भरें");
+    if (!formData.name || !formData.district || !formData.age || !formData.contact || !formData.sickle_cell_status) {
+      toast.error(lang === 'en' ? "Please fill all required fields (marked with *)" : "कृपया सभी आवश्यक फ़ील्ड भरें (* से चिह्नित)");
+      return;
+    }
+
+    if (formData.contact && !/^\d{10}$/.test(formData.contact)) {
+      toast.error(lang === 'en' ? "Invalid contact number. Must be 10 digits." : "अमान्य संपर्क नंबर। 10 अंक होना चाहिए।");
       return;
     }
 
     try {
-      await addDoc(collection(db, 'patients'), {
-        ...formData,
-        status: 'pending_consultation',
-        registrarId: user?.uid,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      const { error } = await supabase
+        .from('patients')
+        .insert([{
+          ...formData,
+          status: 'pending_consultation',
+          registrar_id: user?.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }]);
+
+      if (error) throw error;
+
       toast.success(lang === 'en' ? "Patient registered!" : "मरीज पंजीकृत!");
       setIsRegistering(false);
       setFormData({
         name: '',
         age: 0,
         contact: '',
-        district: profile?.assignedDistricts?.[0] || '',
+        district: profile?.assigned_districts?.[0] || '',
         status: 'pending_consultation',
         gender: 'male',
         address: '',
         block: '',
         village: '',
-        sickleCellStatus: 'AS',
-        preExistingDiagnosis: false,
-        reportsAttached: false,
+        sickle_cell_status: 'AS',
+        pre_existing_diagnosis: false,
+        reports_attached: false,
         symptoms: [],
-        medicationHydroxyurea: false,
-        medicationFolicAcid: false,
-        counsellingTopics: [],
-        nutritionKitDistributed: false,
-        mealRequired: true,
+        medication_hydroxyurea: false,
+        medication_folic_acid: false,
+        counselling_topics: [],
+        nutrition_kit_distributed: false,
+        meal_required: true,
         referral: [],
       });
+
     } catch (error) {
       console.error(error);
       toast.error(lang === 'en' ? "Failed to register" : "पंजीकरण विफल रहा");
@@ -133,149 +143,267 @@ export default function RegistrarDashboard() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-neutral-900 tracking-tight">
-            {TRANSLATIONS.en.patientIntake} / {TRANSLATIONS.hi.patientIntake}
-          </h2>
-          <p className="text-neutral-500">Register new patients for Madhya Pradesh Healthcare System.</p>
-        </div>
-        <div className="flex gap-3">
-          <Button onClick={() => setIsRegistering(!isRegistering)} className="rounded-2xl gap-2 shadow-lg shadow-primary/20 h-10 px-6">
-            <PlusCircle className="w-4 h-4" />
-            {isRegistering ? (lang === 'en' ? "Back" : "वापस") : (lang === 'en' ? "New Registration" : "नया पंजीकरण")}
-          </Button>
-        </div>
-      </div>
-
-      {isRegistering ? (
-        <div className="space-y-6">
-          <ScrollArea className="h-[calc(100vh-250px)] pr-4">
-            <CounsellingForm 
-              data={formData} 
-              onChange={setFormData} 
-            />
-          </ScrollArea>
-          <div className="flex justify-end gap-4 pb-8 max-w-4xl mx-auto px-4">
-            <Button variant="outline" onClick={() => setIsRegistering(false)} className="rounded-xl h-12 px-8">
-              Cancel
-            </Button>
-            <Button onClick={handleRegister} className="rounded-xl h-12 px-8 font-bold shadow-lg shadow-primary/30">
-              <MapPin className="w-5 h-5 mr-2" />
-              {t.confirmRegistration}
+    <div className={`${!isRegistering ? 'space-y-8' : ''} pb-12`}>
+      {/* Header Section */}
+      {!isRegistering && (
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-primary font-bold text-sm uppercase tracking-[0.2em]">
+              <Activity className="w-4 h-4" />
+              {profile?.role} {lang === 'en' ? 'Dashboard' : 'डैशबोर्ड'}
+            </div>
+            <h2 className="font-black text-neutral-900 tracking-tight leading-tight">
+              {getTimeGreeting()}, {profile?.display_name || (lang === 'en' ? 'Registrar' : 'पंजीकार')}
+            </h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => setIsRegistering(!isRegistering)}
+              className={`rounded-2xl gap-3 h-12 px-6 text-sm font-bold transition-all duration-300 shadow-2xl ${isRegistering
+                ? 'bg-neutral-100 text-neutral-900 hover:bg-neutral-200'
+                : 'bg-primary text-white hover:scale-105 shadow-primary/30'
+                }`}
+            >
+              {isRegistering ? (
+                <>
+                  <Search className="w-5 h-5" />
+                  {lang === 'en' ? "View Registrations" : "पंजीकरण देखें"}
+                </>
+              ) : (
+                <>
+                  <PlusCircle className="w-5 h-5" />
+                  {lang === 'en' ? "New Patient Registration" : "नया मरीज पंजीकरण"}
+                </>
+              )}
             </Button>
           </div>
         </div>
-      ) : (
-        <Card className="rounded-3xl border-none shadow-xl shadow-neutral-200/40">
-          <CardHeader className="p-8 border-b border-neutral-100 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-xl">
-                {lang === 'en' ? "Recent Registrations" : "हाल के पंजीकरण"}
-              </CardTitle>
-              {profile?.role !== 'admin' && profile?.assignedDistricts && (
-                <Badge variant="outline" className="w-fit bg-primary/5 text-primary border-primary/20 rounded-full px-3 py-0.5 text-[10px] font-bold">
-                  District: {profile.assignedDistricts.join(', ')}
-                </Badge>
-              )}
+      )}
+
+      {!isRegistering && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-[2rem] premium-shadow border border-neutral-100 flex items-start justify-between">
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
+                <Users className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-neutral-500 font-bold text-[10px] uppercase tracking-wider">{lang === 'en' ? "Total Patients" : "कुल मरीज"}</p>
+                <h3 className="text-xl font-black text-neutral-900 mt-1">{patients.length}</h3>
+              </div>
             </div>
-            
+            <div className="bg-blue-50 text-blue-600 p-2 rounded-xl">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-[2rem] premium-shadow border border-neutral-100 flex items-start justify-between">
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                <PlusCircle className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-neutral-500 font-bold text-[10px] uppercase tracking-wider">{lang === 'en' ? "Today's New" : "आज के नए"}</p>
+                <h3 className="text-xl font-black text-neutral-900 mt-1">{todayRegistrations}</h3>
+              </div>
+            </div>
+            <div className="bg-emerald-50 text-emerald-600 p-2 rounded-xl text-xs font-bold">+12%</div>
+          </div>
+
+          <div className="bg-white p-6 rounded-[2rem] premium-shadow border border-neutral-100 flex items-start justify-between">
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-neutral-500 font-bold text-[10px] uppercase tracking-wider">{lang === 'en' ? "Pending Consult" : "परामर्श लंबित"}</p>
+                <h3 className="text-xl font-black text-neutral-900 mt-1">{pendingConsultations}</h3>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-[2rem] premium-shadow border border-neutral-100 flex items-start justify-between">
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-neutral-500 font-bold text-[10px] uppercase tracking-wider">{lang === 'en' ? "Completed" : "पूर्ण"}</p>
+                <h3 className="text-xl font-black text-neutral-900 mt-1">
+                  {patients.filter(p => p.status === 'complete').length}
+                </h3>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isRegistering ? (
+        <div className="animate-in fade-in duration-500 p-4 space-y-4">
+          <Button 
+            variant="ghost" 
+            onClick={() => setIsRegistering(false)}
+            className="group rounded-xl hover:bg-neutral-100 -ml-2"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2 text-neutral-400 group-hover:text-neutral-900 group-hover:-translate-x-1 transition-all" />
+            <span className="text-xs font-bold text-neutral-500 group-hover:text-neutral-900 uppercase tracking-widest">
+              {lang === 'en' ? 'Back to Directory' : 'निर्देशिका पर वापस जाएं'}
+            </span>
+          </Button>
+          <CounsellingForm
+            data={formData}
+            onChange={setFormData}
+            onSubmit={handleRegister}
+            onCancel={() => setIsRegistering(false)}
+            submitLabel={t.confirmRegistration}
+            cancelLabel={lang === 'en' ? 'Cancel' : 'रद्द करें'}
+          />
+        </div>
+      ) : (
+        <Card className="rounded-[2.5rem] border-none premium-shadow overflow-hidden bg-white/50 backdrop-blur-md">
+          <CardHeader className="p-8 pb-4 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-1">
+              <CardTitle className="text-lg font-black text-neutral-900">
+                {lang === 'en' ? "Patient Directory" : "मरीज निर्देशिका"}
+              </CardTitle>
+              <CardDescription className="text-neutral-500 text-xs font-medium">
+                {lang === 'en' ? "Manage and track recently registered patients." : "हाल ही में पंजीकृत मरीजों का प्रबंधन करें।"}
+              </CardDescription>
+            </div>
+
             <div className="flex items-center gap-4 w-full md:w-auto">
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                <Input 
-                  placeholder={lang === 'en' ? "Search by name or contact..." : "नाम या संपर्क से खोजें..."}
-                  className="pl-10 rounded-2xl border-neutral-200 focus:ring-primary/20 h-10 text-sm"
+              <div className="relative w-full md:w-80 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 group-focus-within:text-primary transition-colors" />
+                <Input
+                  placeholder={lang === 'en' ? "Search patient name or contact..." : "मरीज का नाम या संपर्क खोजें..."}
+                  className="pl-12 pr-4 rounded-2xl border-neutral-100 bg-neutral-100/50 focus:bg-white focus:ring-4 focus:ring-primary/10 h-12 text-sm font-medium transition-all"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table className="min-w-[900px]">
-              <TableHeader>
-                <TableRow className="bg-neutral-50/50 hover:bg-neutral-50/50">
-                  <TableHead className="py-4 pl-8">{t.fullName}</TableHead>
-                  <TableHead className="py-4">{t.district}</TableHead>
-                  <TableHead className="py-4">{t.status}</TableHead>
-                  <TableHead className="py-4">{t.timeAdded}</TableHead>
-                  <TableHead className="py-4 pr-8 text-right">{t.actions}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedPatients.map((p) => (
-                  <TableRow key={p.id} className="hover:bg-neutral-50/50 transition-colors">
-                    <TableCell className="py-4 pl-8">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-neutral-100 overflow-hidden flex items-center justify-center">
-                           {p.registrarImageUrl ? (
-                             <img src={p.registrarImageUrl} className="w-full h-full object-cover" />
-                           ) : (
-                             <UserPlus className="w-5 h-5 text-neutral-300" />
-                           )}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-neutral-900">{p.name}</p>
-                          <p className="text-xs text-neutral-500">{p.age} years • {p.contact}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4">
-                       <Badge variant="outline" className="rounded-full font-normal border-neutral-200">
-                         {p.district}
-                       </Badge>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100 rounded-full px-3 py-1 border-none font-medium">
-                        {p.status.replace('_', ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-medium">
-                        <Clock className="w-3 h-3" />
-                        {new Date(p.createdAt?.toDate()).toLocaleDateString()} {new Date(p.createdAt?.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4 pr-8 text-right">
-                       <Button variant="ghost" size="sm" className="rounded-full">{t.viewDetails}</Button>
-                    </TableCell>
+          <CardContent className="p-4 pt-0">
+            <div className="overflow-x-auto">
+              <Table className="min-w-[900px]">
+                <TableHeader>
+                  <TableRow className="border-none hover:bg-transparent">
+                    <TableHead className="py-6 pl-8 text-neutral-400 font-bold uppercase tracking-wider text-[10px]">{t.fullName}</TableHead>
+                    <TableHead className="py-6 text-neutral-400 font-bold uppercase tracking-wider text-[10px]">{t.district}</TableHead>
+                    <TableHead className="py-6 text-neutral-400 font-bold uppercase tracking-wider text-[10px]">{t.status}</TableHead>
+                    <TableHead className="py-6 text-neutral-400 font-bold uppercase tracking-wider text-[10px]">{t.timeAdded}</TableHead>
+                    <TableHead className="py-6 pr-8 text-right text-neutral-400 font-bold uppercase tracking-wider text-[10px]">{t.actions}</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-
-            <div className="p-4 border-t border-neutral-100 bg-neutral-50/30 flex items-center justify-between px-8">
-               <p className="text-xs text-neutral-500 font-medium tracking-tight">
-                {lang === 'en' ? 'Page' : 'पृष्ठ'} {currentPage} {lang === 'en' ? 'of' : 'का'} {totalPages}
-              </p>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="rounded-xl h-8 px-4"
-                >
-                  {lang === 'en' ? 'Prev' : 'पिछला'}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages || totalPages === 0}
-                  className="rounded-xl h-8 px-4"
-                >
-                  {lang === 'en' ? 'Next' : 'अगला'}
-                </Button>
-              </div>
+                </TableHeader>
+                <TableBody>
+                  {paginatedPatients.map((p) => (
+                    <TableRow key={p.id} className="group border-none hover:bg-white transition-all duration-300 rounded-3xl">
+                      <TableCell className="py-5 pl-8 rounded-l-[2rem]">
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <div className="w-14 h-14 rounded-2xl bg-neutral-100 overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform">
+                              {p.registrar_image_url ? (
+                                <img src={p.registrar_image_url} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-neutral-100 to-neutral-200 flex items-center justify-center">
+                                  <span className="text-xl font-black text-neutral-400">{p.name.charAt(0)}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white border-2 border-white flex items-center justify-center">
+                              <div className={`w-2 h-2 rounded-full ${p.status === 'complete' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
+                            </div>
+                          </div>
+                          <div>
+                            <p className="font-bold text-neutral-900 text-sm group-hover:text-primary transition-colors">{p.name}</p>
+                            <p className="text-xs text-neutral-500 font-medium flex items-center gap-2">
+                              {p.age} years • <span className="text-neutral-400">{p.contact}</span>
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-5">
+                        <Badge variant="outline" className="rounded-xl font-bold bg-neutral-50 border-neutral-100 text-neutral-600 px-3 py-1.5">
+                          <MapPin className="w-3 h-3 mr-1.5 opacity-50" />
+                          {p.district}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-5">
+                        <Badge
+                          className={`rounded-xl px-4 py-2 border-none font-bold text-xs uppercase tracking-wider ${p.status === 'pending_consultation' ? 'bg-orange-100 text-orange-600' :
+                            p.status === 'pending_meal' ? 'bg-blue-100 text-blue-600' :
+                              'bg-emerald-100 text-emerald-600'
+                            }`}
+                        >
+                          {p.status.replace('_', ' ')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-5">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-xs text-neutral-900 font-bold">
+                            <Clock className="w-4 h-4 text-neutral-400" />
+                            {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                          <div className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest pl-5">
+                            {new Date(p.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-5 pr-8 text-right rounded-r-[2rem]">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="rounded-xl font-bold text-xs hover:bg-primary/5 hover:text-primary transition-colors group-hover:px-6"
+                        >
+                          {t.viewDetails}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
 
             {filteredPatients.length === 0 && (
-              <div className="p-20 text-center text-neutral-400">
-                <Search className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                <p>{searchQuery ? (lang === 'en' ? "No results found for your search." : "आपकी खोज के लिए कोई परिणाम नहीं मिला।") : (lang === 'en' ? "No patients registered yet today." : "आज अभी तक कोई मरीज पंजीकृत नहीं हुआ है।")}</p>
+              <div className="p-32 text-center">
+                <div className="w-24 h-24 bg-neutral-100 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6">
+                  <Search className="w-10 h-10 text-neutral-300" />
+                </div>
+                <h4 className="text-xl font-bold text-neutral-900 mb-2">
+                  {searchQuery ? (lang === 'en' ? "No patients found" : "कोई मरीज नहीं मिला") : (lang === 'en' ? "No registrations yet" : "अभी तक कोई पंजीकरण नहीं")}
+                </h4>
+                <p className="text-neutral-500 font-medium max-w-xs mx-auto">
+                  {searchQuery
+                    ? (lang === 'en' ? `We couldn't find any results for "${searchQuery}"` : `हमें "${searchQuery}" के लिए कोई परिणाम नहीं मिला`)
+                    : (lang === 'en' ? "Start registering new patients to see them in this directory." : "मरीजों को इस निर्देशिका में देखने के लिए पंजीकरण शुरू करें।")
+                  }
+                </p>
+              </div>
+            )}
+
+            {filteredPatients.length > itemsPerPage && (
+              <div className="mt-8 p-4 glass-morphism rounded-3xl flex items-center justify-between">
+                <p className="text-xs text-neutral-500 font-bold">
+                  {lang === 'en' ? 'Showing' : 'दिखा रहा है'} <span className="text-neutral-900">{startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredPatients.length)}</span> {lang === 'en' ? 'of' : 'का'} <span className="text-neutral-900">{filteredPatients.length}</span>
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="rounded-2xl h-10 px-4 text-xs font-bold border-neutral-200"
+                  >
+                    {lang === 'en' ? 'Previous' : 'पिछला'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    className="rounded-2xl h-10 px-4 text-xs font-bold border-neutral-200"
+                  >
+                    {lang === 'en' ? 'Next' : 'अगला'}
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
@@ -284,3 +412,4 @@ export default function RegistrarDashboard() {
     </div>
   );
 }
+

@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as React from 'react';
-import { db } from '../lib/firebase';
-import { collection, query, onSnapshot, doc, setDoc } from 'firebase/firestore';
-import { initializeApp, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
-import firebaseConfig from '../../firebase-applet-config.json';
+import { supabase } from '../lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,17 +15,6 @@ import { MADHYA_PRADESH_DISTRICTS } from '../constants/mp_data';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { buttonVariants } from './ui/button';
 
-// Function to get a separate Firebase app for user creation (to avoid logging out admin)
-function getSecondaryAuth() {
-  let secondaryApp: FirebaseApp;
-  try {
-    secondaryApp = getApp('SecondaryApp');
-  } catch (e) {
-    secondaryApp = initializeApp(firebaseConfig, 'SecondaryApp');
-  }
-  return getAuth(secondaryApp);
-}
-
 export default function AdminSettings() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,14 +28,33 @@ export default function AdminSettings() {
     districts: [] as string[]
   });
 
+  const fetchUsers = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*');
+    
+    if (error) {
+      console.error("Error fetching users:", error);
+    } else {
+      setUsers(data as UserProfile[]);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const q = query(collection(db, 'users'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => doc.data() as UserProfile);
-      setUsers(data);
-      setLoading(false);
-    });
-    return unsubscribe;
+    fetchUsers();
+
+    const channel = supabase
+      .channel('profiles-admin')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        fetchUsers();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const generatePassword = () => {
@@ -69,35 +73,50 @@ export default function AdminSettings() {
       return;
     }
 
-    const secondaryAuth = getSecondaryAuth();
-    
     try {
-      // 1. Create the user in Firebase Auth using the secondary app
-      const userCredential = await createUserWithEmailAndPassword(
-        secondaryAuth,
-        formData.email,
-        formData.password
-      );
-      
-      const newUser = userCredential.user;
-
-      // 2. Update their display name in Auth
-      await updateProfile(newUser, { displayName: formData.displayName });
-
-      // 3. Create their profile in Firestore
-      const userProfile: UserProfile = {
-        uid: newUser.uid,
+      // Note: In Supabase, signUp will create the user. 
+      // If we are already logged in as admin, this might sign us out depending on config.
+      // A better way is using an Edge Function, but for this migration we'll try signUp.
+      const { data, error } = await supabase.auth.signUp({
         email: formData.email,
-        displayName: formData.displayName,
-        role: formData.role,
-        assignedDistricts: formData.districts,
-        preferredLanguage: 'en'
-      };
+        password: formData.password,
+        options: {
+          data: {
+            display_name: formData.displayName,
+            role: formData.role,
+            assigned_districts: formData.districts,
+          }
+        }
+      });
 
-      await setDoc(doc(db, 'users', newUser.uid), userProfile);
+      if (error) throw error;
 
-      // 4. Sign out from secondary app to cleanup
-      await signOut(secondaryAuth);
+      // The profile will be created via database trigger or we can manually insert if needed.
+      // Assuming a trigger handles profile creation from auth.users.
+      // If not, we manually insert:
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user?.id,
+          email: formData.email,
+          display_name: formData.displayName,
+          role: formData.role,
+          assigned_districts: formData.districts,
+          preferred_language: 'en'
+        });
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
+        // If profile exists, update it
+        await supabase
+          .from('profiles')
+          .update({
+            display_name: formData.displayName,
+            role: formData.role,
+            assigned_districts: formData.districts,
+          })
+          .eq('id', data.user?.id);
+      }
 
       toast.success(`User ${formData.displayName} created successfully! Password: ${formData.password}`);
       setIsAdding(false);
@@ -108,19 +127,10 @@ export default function AdminSettings() {
         role: 'registrar',
         districts: []
       });
+      fetchUsers();
     } catch (error: any) {
       console.error(error);
-      let message = "Failed to create user";
-      if (error.code === 'auth/email-already-in-use') {
-        message = "This email is already registered. Staff accounts must have unique emails.";
-      } else if (error.code === 'auth/invalid-email') {
-        message = "Invalid email address format.";
-      } else if (error.code === 'auth/weak-password') {
-        message = "The password is too weak. Please use at least 8 characters.";
-      } else if (error.code === 'auth/operation-not-allowed') {
-        message = "Email/Password sign-in is not enabled in Firebase Console. Please enable it under Auth > Providers.";
-      }
-      toast.error(message, { duration: 6000 });
+      toast.error(error.message || "Failed to create user");
     }
   };
 
@@ -159,7 +169,7 @@ export default function AdminSettings() {
             <CardDescription className="text-neutral-400">
               Credentials created here allow secure login. 
               <span className="block mt-2 text-primary/80 font-medium">
-                Note: Ensure "Email/Password" is ENABLED in your Firebase Auth Providers.
+                Note: Ensure "Email/Password" is ENABLED in your Supabase Auth settings.
               </span>
             </CardDescription>
           </CardHeader>
@@ -288,14 +298,14 @@ export default function AdminSettings() {
               </TableHeader>
               <TableBody>
                 {users.map((u) => (
-                  <TableRow key={u.uid} className="hover:bg-neutral-50/50 group">
+                  <TableRow key={u.id} className="hover:bg-neutral-50/50 group">
                     <TableCell className="pl-8 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center border border-neutral-200">
                           <UserIcon className="w-4 h-4 text-neutral-400" />
                         </div>
                         <div>
-                          <p className="font-bold text-neutral-900 leading-none mb-1">{u.displayName}</p>
+                          <p className="font-bold text-neutral-900 leading-none mb-1">{u.display_name}</p>
                           <p className="text-xs text-neutral-500">{u.email}</p>
                         </div>
                       </div>
@@ -307,15 +317,15 @@ export default function AdminSettings() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1 max-w-[300px]">
-                        {u.assignedDistricts?.length === 0 ? (
+                        {u.assigned_districts?.length === 0 ? (
                            <span className="text-[10px] text-neutral-400 italic">Statewide Access</span>
                         ) : (
-                          u.assignedDistricts?.slice(0, 2).map(d => (
+                          u.assigned_districts?.slice(0, 2).map(d => (
                             <Badge key={d} variant="outline" className="rounded-full font-normal border-neutral-200 text-[10px]">{d}</Badge>
                           ))
                         )}
-                        {u.assignedDistricts && u.assignedDistricts.length > 2 && (
-                          <Badge variant="outline" className="rounded-full font-normal border-neutral-200 text-[10px]">+{u.assignedDistricts.length - 2}</Badge>
+                        {u.assigned_districts && u.assigned_districts.length > 2 && (
+                          <Badge variant="outline" className="rounded-full font-normal border-neutral-200 text-[10px]">+{u.assigned_districts.length - 2}</Badge>
                         )}
                       </div>
                     </TableCell>
@@ -340,3 +350,4 @@ export default function AdminSettings() {
     </div>
   );
 }
+

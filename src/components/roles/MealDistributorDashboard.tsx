@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db } from '../../lib/firebase';
-import { collection, doc, updateDoc, serverTimestamp, query, onSnapshot, where } from 'firebase/firestore';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { Patient } from '../../types';
 import { Button } from '@/components/ui/button';
@@ -18,16 +17,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PatientSummary } from '../PatientSummary';
 import { CounsellingForm } from '../CounsellingForm';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { usePatients } from '../../hooks/usePatients';
 
 export default function MealDistributorDashboard() {
   const { user, profile } = useAuth();
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const { patients, loading } = usePatients({ status: 'pending_meal', realtime: true });
   const [visibleCount, setVisibleCount] = useState(6);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [formData, setFormData] = useState<Partial<Patient>>({});
   const [imageUrl, setImageUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const lang = profile?.preferredLanguage || 'hi';
+  const lang = profile?.preferred_language || 'hi';
   const t = TRANSLATIONS[lang];
 
   const visiblePatients = patients.slice(0, visibleCount);
@@ -38,44 +38,26 @@ export default function MealDistributorDashboard() {
     }
   }, [selectedPatient]);
 
-  useEffect(() => {
-    if (!profile) return;
-
-    let q = query(
-      collection(db, 'patients'),
-      where('status', '==', 'pending_meal')
-    );
-
-    // District-level RBAC filtering
-    if (profile.role !== 'admin' && profile.assignedDistricts && profile.assignedDistricts.length > 0) {
-      q = query(
-        collection(db, 'patients'),
-        where('status', '==', 'pending_meal'),
-        where('district', 'in', profile.assignedDistricts)
-      );
-    }
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Patient));
-      setPatients(data);
-    });
-
-    return unsubscribe;
-  }, [profile]);
-
   const handleDeliver = async () => {
     if (!selectedPatient) return;
 
     setSubmitting(true);
     try {
-      await updateDoc(doc(db, 'patients', selectedPatient.id), {
-        status: 'complete',
-        mealImageUrl: imageUrl || null,
-        mealDistributorNotes: formData.mealDistributorNotes || '',
-        mealDistributorId: user?.uid,
-        mealServedAt: new Date().toISOString(),
-        updatedAt: serverTimestamp(),
-      });
+      const { error } = await supabase
+        .from('patients')
+        .update({
+          status: 'complete',
+          meal_image_url: imageUrl || null,
+          meal_distributor_notes: formData.meal_distributor_notes || '',
+          meal_distributor_id: user?.id,
+
+          meal_served_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', selectedPatient.id);
+
+      if (error) throw error;
+
       toast.success(lang === 'en' ? "Meal delivered!" : "भोजन वितरित!");
       setSelectedPatient(null);
       setImageUrl('');
@@ -97,12 +79,13 @@ export default function MealDistributorDashboard() {
           </h2>
           <p className="text-neutral-500">Service delivery for MP Healthcare System patients.</p>
         </div>
-        {profile?.role !== 'admin' && profile?.assignedDistricts && (
+        {profile?.role !== 'admin' && profile?.assigned_districts && (
           <div className="flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-xl border border-primary/10">
             <ShieldCheck className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-tight">Assigned Districts: {profile.assignedDistricts.join(', ')}</span>
+            <span className="text-xs font-bold uppercase tracking-tight">Assigned Districts: {profile.assigned_districts.join(', ')}</span>
           </div>
         )}
+
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -127,7 +110,7 @@ export default function MealDistributorDashboard() {
                <div className="p-4 bg-neutral-50 rounded-2xl space-y-3">
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="w-4 h-4 text-neutral-400" />
-                    <span className="font-medium text-neutral-600">Pending since: {new Date(p.updatedAt?.toMillis()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="font-medium text-neutral-600">Pending since: {new Date(p.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-neutral-500 italic">
                     <User className="w-4 h-4 text-neutral-400" />
@@ -220,9 +203,10 @@ export default function MealDistributorDashboard() {
                       <Textarea 
                         placeholder={lang === 'en' ? "e.g., Left with patient..." : "जैसे, मरीज के साथ छोड़ दिया..."}
                         className="w-full rounded-2xl border-neutral-200 p-4 text-sm focus:ring-primary focus:border-primary min-h-[150px]"
-                        value={formData.mealDistributorNotes || ''}
-                        onChange={e => setFormData({...formData, mealDistributorNotes: e.target.value})}
+                        value={formData.meal_distributor_notes || ''}
+                        onChange={e => setFormData({...formData, meal_distributor_notes: e.target.value})}
                       />
+
                     </div>
                   </div>
                 </div>
@@ -243,3 +227,4 @@ export default function MealDistributorDashboard() {
     </div>
   );
 }
+

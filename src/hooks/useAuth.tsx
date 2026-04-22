@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 import { UserProfile, UserRole } from '../types';
 
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
+  session: Session | null;
   loading: boolean;
-  login: () => Promise<void>;
-  logout: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
   updateRole: (role: UserRole) => Promise<void>;
   updateDistricts: (districts: string[]) => Promise<void>;
   updateLanguage: (lang: 'en' | 'hi') => Promise<void>;
@@ -20,82 +20,147 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const lastFetchedUid = React.useRef<string | null>(null);
 
+  // 1. Manage Auth State
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      try {
-        setUser(user);
-        if (user) {
-          const docRef = doc(db, 'users', user.uid);
-          const docSnap = await getDoc(docRef);
-          
-          if (docSnap.exists()) {
-            setProfile(docSnap.data() as UserProfile);
-          } else {
-            const newProfile: UserProfile = {
-              uid: user.uid,
-              email: user.email || '',
-              displayName: user.displayName || '',
-              role: 'registrar',
-              assignedDistricts: [],
-              preferredLanguage: 'en',
-            };
-            await setDoc(docRef, newProfile);
-            setProfile(newProfile);
-          }
-        } else {
-          setProfile(null);
-        }
-      } catch (error) {
-        console.error("Auth error:", error);
-      } finally {
-        setLoading(false);
-      }
+    let mounted = true;
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session: s }, error }) => {
+      if (!mounted) return;
+      if (error) console.error("getSession error:", error);
+      
+      console.log("Initial session check:", s?.user?.id || "no user");
+      setSession(s);
+      setUser(s?.user ?? null);
+      setAuthLoading(false);
     });
 
-    return unsubscribe;
+    // Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      if (!mounted) return;
+      console.log(`Auth event: ${event}`, s?.user?.id || "no user");
+      setSession(s);
+      setUser(s?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    // Safety timeout to ensure loading eventually clears
+    const timer = setTimeout(() => {
+      if (mounted) setAuthLoading(false);
+    }, 5000);
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
-  const login = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+  // 2. Manage Profile State (reacts to user changes)
+  useEffect(() => {
+    if (!user) {
+      setProfile(null);
+      setProfileLoading(false);
+      lastFetchedUid.current = null;
+      return;
+    }
+
+    if (lastFetchedUid.current === user.id) return;
+
+    const fetchProfile = async () => {
+      console.log("Fetching profile for:", user.id);
+      setProfileLoading(true);
+      lastFetchedUid.current = user.id;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        
+        console.log("Profile fetched:", data?.role || "no role");
+        setProfile((data as UserProfile) ?? null);
+      } catch (err) {
+        console.error("Profile fetch error:", err);
+        setProfile(null);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [user?.id]);
+
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
   };
 
-  const logout = async () => {
-    await signOut(auth);
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   };
 
   const updateRole = async (role: UserRole) => {
     if (user && profile) {
-      const docRef = doc(db, 'users', user.uid);
-      const newProfile = { ...profile, role };
-      await setDoc(docRef, newProfile);
-      setProfile(newProfile);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      setProfile({ ...profile, role });
     }
   };
 
   const updateDistricts = async (districts: string[]) => {
     if (user && profile) {
-      const docRef = doc(db, 'users', user.uid);
-      const newProfile = { ...profile, assignedDistricts: districts };
-      await setDoc(docRef, newProfile);
-      setProfile(newProfile);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ assigned_districts: districts })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      setProfile({ ...profile, assigned_districts: districts });
     }
   };
 
   const updateLanguage = async (preferredLanguage: 'en' | 'hi') => {
     if (user && profile) {
-      const docRef = doc(db, 'users', user.uid);
-      const newProfile = { ...profile, preferredLanguage };
-      await setDoc(docRef, newProfile);
-      setProfile(newProfile);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ preferred_language: preferredLanguage })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      setProfile({ ...profile, preferred_language: preferredLanguage });
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, login, logout, updateRole, updateDistricts, updateLanguage }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session,
+      profile, 
+      loading: authLoading || profileLoading, 
+      signIn, 
+      signOut, 
+      updateRole, 
+      updateDistricts, 
+      updateLanguage 
+    }}>
       {children}
     </AuthContext.Provider>
   );

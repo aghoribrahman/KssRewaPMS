@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db } from '../../lib/firebase';
-import { collection, doc, updateDoc, serverTimestamp, query, onSnapshot, where } from 'firebase/firestore';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { Patient } from '../../types';
 import { Button } from '@/components/ui/button';
@@ -19,16 +18,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PatientSummary } from '../PatientSummary';
 import { CounsellingForm } from '../CounsellingForm';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { usePatients } from '../../hooks/usePatients';
 
 export default function ConsultantDashboard() {
   const { user, profile } = useAuth();
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const { patients, loading } = usePatients({ status: 'pending_consultation', realtime: true });
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   const [formData, setFormData] = useState<Partial<Patient>>({});
   const [submitting, setSubmitting] = useState(false);
-  const lang = profile?.preferredLanguage || 'hi';
+  const lang = profile?.preferred_language || 'hi';
   const t = TRANSLATIONS[lang];
 
   const totalPages = Math.ceil(patients.length / itemsPerPage);
@@ -41,50 +41,29 @@ export default function ConsultantDashboard() {
     }
   }, [selectedPatient]);
 
-  useEffect(() => {
-    if (!profile) return;
-
-    let q = query(
-      collection(db, 'patients'),
-      where('status', '==', 'pending_consultation')
-    );
-
-    // District-level RBAC filtering
-    if (profile.role !== 'admin' && profile.assignedDistricts && profile.assignedDistricts.length > 0) {
-      q = query(
-        collection(db, 'patients'),
-        where('status', '==', 'pending_consultation'),
-        where('district', 'in', profile.assignedDistricts)
-      );
-    }
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Patient));
-      setPatients(data);
-    });
-
-    return unsubscribe;
-  }, [profile]);
-
   const handleCompleteReview = async () => {
-    if (!selectedPatient || !formData.consultantAdvice) {
+    if (!selectedPatient || !formData.consultant_advice) {
       toast.error("Please provide clinical advice");
       return;
     }
 
+
     setSubmitting(true);
     try {
-      // Create a clean payload with only allowed/relevant fields
-      const { id, createdAt, registrarId, ...cleanData } = formData as any;
+      const nextStatus = formData.meal_required ? 'pending_meal' : 'complete';
+
       
-      const nextStatus = formData.mealRequired ? 'pending_meal' : 'complete';
-      
-      await updateDoc(doc(db, 'patients', selectedPatient.id), {
-        ...cleanData,
-        status: nextStatus,
-        consultantId: user?.uid,
-        updatedAt: serverTimestamp(),
-      });
+      const { error } = await supabase
+        .from('patients')
+        .update({
+          ...formData,
+          status: nextStatus,
+          consultant_id: user?.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', selectedPatient.id);
+
+      if (error) throw error;
       
       const successMsg = nextStatus === 'pending_meal' 
         ? "Consultation complete. Patient moved to Meal Distribution."
@@ -110,12 +89,13 @@ export default function ConsultantDashboard() {
           </h2>
           <p className="text-neutral-500">Madhya Pradesh Regional Health Center • Clinical Oversight</p>
         </div>
-        {profile?.role !== 'admin' && profile?.assignedDistricts && (
+        {profile?.role !== 'admin' && profile?.assigned_districts && (
           <div className="flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-xl border border-primary/10">
             <MapPin className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-tight">Accessing Dist: {profile.assignedDistricts.join(', ')}</span>
+            <span className="text-xs font-bold uppercase tracking-tight">Accessing Dist: {profile.assigned_districts.join(', ')}</span>
           </div>
         )}
+
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -151,7 +131,7 @@ export default function ConsultantDashboard() {
                       </TableCell>
                       <TableCell className="py-4">
                          <p className="text-xs font-medium text-neutral-400">
-                           {new Date(p.createdAt?.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                           {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                          </p>
                       </TableCell>
                       <TableCell className="py-4 pr-8 text-right">
@@ -260,15 +240,25 @@ export default function ConsultantDashboard() {
                     {t.medicalAdvice}
                   </h3>
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="advice" className="text-sm font-semibold">{lang === 'en' ? "Final Consultation Notes / Advice" : "अंतिम परामर्श नोट्स / सलाह"}</Label>
-                      <Textarea 
-                        id="advice" 
-                        placeholder={lang === 'en' ? "Enter final advice..." : "अंतिम सलाह दर्ज करें..."} 
-                        className="min-h-[120px] rounded-2xl resize-none focus:ring-primary/20"
-                        value={formData.consultantAdvice || ''}
-                        onChange={e => setFormData({...formData, consultantAdvice: e.target.value})}
-                      />
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="advice" className="text-sm font-semibold">{lang === 'en' ? "Final Consultation Notes / Advice" : "अंतिम परामर्श नोट्स / सलाह"}</Label>
+                        <Textarea 
+                          id="advice" 
+                          placeholder={lang === 'en' ? "Enter final advice..." : "अंतिम सलाह दर्ज करें..."} 
+                          className="min-h-[120px] rounded-2xl resize-none focus:ring-primary/20"
+                          value={formData.consultant_advice || ''}
+                          onChange={e => setFormData({...formData, consultant_advice: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold">{lang === 'en' ? "Attach Reports/Photo" : "रिपोर्ट/फोटो संलग्न करें"}</Label>
+                        <ImageUpload 
+                          folder="consultation_reports" 
+                          onUploadComplete={(url) => setFormData({...formData, consultant_image_url: url})}
+                          label={lang === 'en' ? "Upload Report" : "रिपोर्ट अपलोड करें"}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -289,3 +279,4 @@ export default function ConsultantDashboard() {
     </div>
   );
 }
+

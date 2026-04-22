@@ -16,11 +16,11 @@ interface NavbarProps {
 }
 
 export function Navbar({ currentView, onViewChange }: NavbarProps) {
-  const { profile, logout, updateRole, updateDistricts, updateLanguage } = useAuth();
+  const { profile, signOut, updateRole, updateDistricts, updateLanguage } = useAuth();
   const [isDistrictOpen, setIsDistrictOpen] = useState(false);
 
   const toggleDistrict = (district: string) => {
-    const current = profile?.assignedDistricts || [];
+    const current = profile?.assigned_districts || [];
     const next = current.includes(district)
       ? current.filter(d => d !== district)
       : [...current, district];
@@ -28,9 +28,10 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
   };
 
   const toggleLanguage = () => {
-    const next = profile?.preferredLanguage === 'hi' ? 'en' : 'hi';
+    const next = profile?.preferred_language === 'hi' ? 'en' : 'hi';
     updateLanguage(next);
   };
+
 
   return (
     <nav className="h-20 border-b border-neutral-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
@@ -83,7 +84,7 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
             className="rounded-full gap-2 text-neutral-600 hover:bg-neutral-100 font-medium px-4 h-10"
           >
             <Languages className="w-4 h-4 text-primary" />
-            <span className="hidden sm:inline">{profile?.preferredLanguage === 'hi' ? 'English' : 'हिंदी'}</span>
+            <span className="hidden sm:inline">{profile?.preferred_language === 'hi' ? 'English' : 'हिंदी'}</span>
           </Button>
 
           {/* District Selector for Non-Admins to test RBAC */}
@@ -93,7 +94,7 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
                 <MapIcon className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">My Districts</span>
                 <Badge variant="secondary" className="ml-1 px-1.5 h-5 min-w-5 justify-center rounded-full bg-primary/10 text-primary border-none text-[10px]">
-                  {profile?.assignedDistricts?.length || 0}
+                  {profile?.assigned_districts?.length || 0}
                 </Badge>
               </PopoverTrigger>
               <PopoverContent className="w-64 p-0 rounded-2xl shadow-2xl border-neutral-100" align="end">
@@ -109,7 +110,7 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
                       className="w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between hover:bg-neutral-50 transition-colors font-medium text-neutral-700"
                     >
                       {district}
-                      {profile?.assignedDistricts?.includes(district) && (
+                      {profile?.assigned_districts?.includes(district) && (
                         <Check className="w-3.5 h-3.5 text-primary" />
                       )}
                     </button>
@@ -141,10 +142,10 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
 
           <div className="flex items-center gap-3">
             <div className="hidden lg:flex flex-col items-end">
-              <span className="text-sm font-bold text-neutral-900 leading-none mb-1">{profile?.displayName || profile?.email?.split('@')[0]}</span>
+              <span className="text-sm font-bold text-neutral-900 leading-none mb-1">{profile?.display_name || profile?.email?.split('@')[0]}</span>
               <span className="text-[10px] font-bold text-primary uppercase tracking-widest leading-none">{profile?.role?.replace('_', ' ')}</span>
             </div>
-            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-neutral-100" onClick={logout}>
+            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-neutral-100" onClick={signOut}>
               <LogOut className="w-5 h-5 text-neutral-500" />
             </Button>
           </div>

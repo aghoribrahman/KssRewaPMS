@@ -1,12 +1,12 @@
 export type UserRole = 'admin' | 'registrar' | 'consultant' | 'meal_distributor';
 
 export interface UserProfile {
-  uid: string;
+  id: string;
   email: string;
   role: UserRole;
-  displayName?: string;
-  assignedDistricts?: string[]; // Districts this user can manage
-  preferredLanguage?: 'en' | 'hi';
+  display_name?: string;
+  assigned_districts?: string[]; // Districts this user can manage
+  preferred_language?: 'en' | 'hi';
 }
 
 export type PatientStatus = 'pending_consultation' | 'pending_meal' | 'complete';
@@ -23,74 +23,75 @@ export interface Patient {
   district: string;
   block: string;
   village: string;
-  abhaId?: string;
-  aadharNumber?: string;
+  abha_id?: string;
+  aadhar_number?: string;
   
   // Medical Information
-  sickleCellStatus: SickleCellStatus;
-  preExistingDiagnosis: boolean;
-  dateOfDiagnosis?: string;
-  reportsAttached: boolean;
+  sickle_cell_status: SickleCellStatus;
+  pre_existing_diagnosis: boolean;
+  date_of_diagnosis?: string;
+  reports_attached: boolean;
 
   // Medical History
-  firstSymptomOnset?: string;
-  previousHospitalizations: boolean;
-  bloodTransfusionsCount: number;
-  otherHealthIssues?: string;
+  first_symptom_onset?: string;
+  previous_hospitalizations: boolean;
+  blood_transfusions_count: number;
+  other_health_issues?: string;
 
   // Present Symptoms
   symptoms: string[]; // Bone / Joint Pain, Recurring Fever, etc.
-  otherSymptoms?: string;
+  other_symptoms?: string;
 
   // Current Medication & Treatment
-  medicationHydroxyurea: boolean;
-  dosageHydroxyurea?: string;
-  medicationFolicAcid: boolean;
-  dosageFolicAcid?: string;
-  otherMedications?: string;
-  medicationRegularity: boolean;
+  medication_hydroxyurea: boolean;
+  dosage_hydroxyurea?: string;
+  medication_folic_acid: boolean;
+  dosage_folic_acid?: string;
+  other_medications?: string;
+  medication_regularity: boolean;
 
   // Diet & Lifestyle
-  dietaryHabit: 'Balanced' | 'Unbalanced';
-  dailyWaterIntake?: string;
-  physicalActivity: 'Regular' | 'None';
+  dietary_habit: 'Balanced' | 'Unbalanced';
+  daily_water_intake?: string;
+  physical_activity: 'Regular' | 'None';
 
   // Counselling Topics
-  counsellingTopics: string[];
+  counselling_topics: string[];
 
   // Nutrition Kit
-  nutritionKitDistributed: boolean;
-  nutritionKitDate?: string;
-  nutritionKitInstructionsProvided: boolean;
+  nutrition_kit_distributed: boolean;
+  nutrition_kit_date?: string;
+  nutrition_kit_instructions_provided: boolean;
 
   // Referral
   referral: string[]; // Laboratory, Hospital Admission, Specialist
 
   // Feedback
-  feedbackConfirmation: boolean;
-  specificConcerns?: string;
+  feedback_confirmation: boolean;
+  specific_concerns?: string;
 
   // Counsellor Details
-  counsellorName?: string;
-  counsellorDesignation?: string;
-  counsellorOrganization?: string; // Default: Kiran Sewa Sansthan
+  counsellor_name?: string;
+  counsellor_designation?: string;
+  counsellor_organization?: string; // Default: Kiran Sewa Sansthan
 
   status: PatientStatus;
-  mealRequired: boolean;
+  meal_required: boolean;
   
-  registrarNotes?: string;
-  registrarImageUrl?: string;
-  registrarId?: string;
+  registrar_notes?: string;
+  registrar_image_url?: string;
+  registrar_id?: string;
   
-  consultantAdvice?: string;
-  consultantImageUrl?: string;
-  consultantId?: string;
+  consultant_advice?: string;
+  consultant_image_url?: string;
+  consultant_id?: string;
   
-  mealDistributorNotes?: string;
-  mealImageUrl?: string;
-  mealDistributorId?: string;
-  mealServedAt?: string;
+  meal_distributor_notes?: string;
+  meal_image_url?: string;
+  meal_distributor_id?: string;
+  meal_served_at?: string;
 
-  createdAt: any;
-  updatedAt: any;
+  created_at: string;
+  updated_at: string;
 }
+

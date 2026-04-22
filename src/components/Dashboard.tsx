@@ -7,12 +7,14 @@ import RegistrarDashboard from './roles/RegistrarDashboard';
 import ConsultantDashboard from './roles/ConsultantDashboard';
 import MealDistributorDashboard from './roles/MealDistributorDashboard';
 import AdminSettings from './AdminSettings';
+import { LoginForm } from './LoginForm';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
 
 export default function Dashboard() {
-  const { user, profile, loading, login, logout } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [currentView, setCurrentView] = useState<'dashboard' | 'settings'>('dashboard');
+  const [isImmersive, setIsImmersive] = useState(false);
 
   if (loading) {
     return (
@@ -29,20 +31,7 @@ export default function Dashboard() {
   if (!user) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-4 bg-gradient-to-br from-neutral-50 to-neutral-100">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full bg-white p-8 rounded-3xl shadow-xl shadow-neutral-200/50 border border-neutral-100 text-center"
-        >
-          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Activity className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900 mb-2">CareFlow PMS</h1>
-          <p className="text-neutral-500 mb-8">Secure patient tracking for hospital workflows.</p>
-          <Button onClick={login} size="lg" className="w-full rounded-2xl h-14 text-lg font-medium">
-            Sign in with Google
-          </Button>
-        </motion.div>
+        <LoginForm />
       </div>
     );
   }
@@ -56,7 +45,7 @@ export default function Dashboard() {
       case 'admin':
         return <AdminDashboard />;
       case 'registrar':
-        return <RegistrarDashboard />;
+        return <RegistrarDashboard onImmersiveChange={setIsImmersive} />;
       case 'consultant':
         return <ConsultantDashboard />;
       case 'meal_distributor':
@@ -69,7 +58,7 @@ export default function Dashboard() {
   return (
     <>
       <Navbar currentView={currentView} onViewChange={setCurrentView} />
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8">
+      <main className={`flex-1 w-full mx-auto transition-all duration-300 ${isImmersive ? 'p-0 max-w-full' : 'max-w-7xl p-4 md:p-8'}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={`${profile?.role}-${currentView}`}

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db } from '../../lib/firebase';
-import { collection, query, orderBy, onSnapshot, limit } from 'firebase/firestore';
+import { supabase } from '../../lib/supabase';
 import { Patient } from '../../types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -31,23 +30,38 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'patients'),
-      orderBy('createdAt', 'desc'),
-      limit(200)
-    );
+    const fetchPatients = async () => {
+      const { data, error } = await supabase
+        .from('patients')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200);
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Patient));
-      setPatients(data);
-      
-      const total = data.length;
-      const completed = data.filter(p => p.status === 'complete').length;
-      const pending = total - completed;
-      setStats({ total, pending, completed });
-    });
+      if (error) {
+        console.error("Error fetching patients:", error);
+      } else {
+        const patientsData = data as Patient[];
+        setPatients(patientsData);
+        
+        const total = patientsData.length;
+        const completed = patientsData.filter(p => p.status === 'complete').length;
+        const pending = total - completed;
+        setStats({ total, pending, completed });
+      }
+    };
 
-    return unsubscribe;
+    fetchPatients();
+
+    const channel = supabase
+      .channel('admin-patients')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'patients' }, () => {
+        fetchPatients();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -83,7 +97,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: lang === 'en' ? 'Total Patients' : 'कुल मरीज', value: stats.total, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: lang === 'en' ? 'Active Queue' : 'सक्रिय कतार', value: stats.pending, icon: Activity, color: 'text-orange-600', bg: 'bg orange-50' },
+          { label: lang === 'en' ? 'Active Queue' : 'सक्रिय कतार', value: stats.pending, icon: Activity, color: 'text-orange-600', bg: 'bg-orange-50' },
           { label: lang === 'en' ? 'Completed' : 'पूरा हुआ', value: stats.completed, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
           { label: lang === 'en' ? 'Efficiency' : 'दक्षता', value: '94%', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' }
         ].map((stat, i) => (
@@ -131,7 +145,7 @@ export default function AdminDashboard() {
                   <TableCell className="py-4 pl-8">
                     <div>
                       <p className="font-semibold text-neutral-900">{p.name}</p>
-                      <p className="text-xs text-neutral-500">{new Date(p.createdAt?.toDate()).toLocaleDateString()}</p>
+                      <p className="text-xs text-neutral-500">{new Date(p.created_at).toLocaleDateString()}</p>
                     </div>
                   </TableCell>
                   <TableCell className="py-4">
@@ -146,16 +160,16 @@ export default function AdminDashboard() {
                   </TableCell>
                   <TableCell className="py-4">
                     <div className="flex gap-1">
-                      <div className={`w-3 h-3 rounded-full ${p.registrarId ? 'bg-primary' : 'bg-neutral-200'}`} title="Registrar" />
-                      <div className={`w-3 h-3 rounded-full ${p.consultantId ? 'bg-primary' : 'bg-neutral-200'}`} title="Consultant" />
-                      <div className={`w-3 h-3 rounded-full ${p.mealDistributorId ? 'bg-primary' : 'bg-neutral-200'}`} title="Meal" />
+                      <div className={`w-3 h-3 rounded-full ${p.registrar_id ? 'bg-primary' : 'bg-neutral-200'}`} title="Registrar" />
+                      <div className={`w-3 h-3 rounded-full ${p.consultant_id ? 'bg-primary' : 'bg-neutral-200'}`} title="Consultant" />
+                      <div className={`w-3 h-3 rounded-full ${p.meal_distributor_id ? 'bg-primary' : 'bg-neutral-200'}`} title="Meal" />
                     </div>
                   </TableCell>
                   <TableCell className="py-4">
                      <div className="flex -space-x-2">
-                       {p.registrarImageUrl && <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-neutral-100 z-30 shadow-sm"><img src={p.registrarImageUrl} className="w-full h-full object-cover" /></div>}
-                       {p.consultantImageUrl && <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-neutral-100 z-20 shadow-sm"><img src={p.consultantImageUrl} className="w-full h-full object-cover" /></div>}
-                       {p.mealImageUrl && <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-neutral-100 z-10 shadow-sm"><img src={p.mealImageUrl} className="w-full h-full object-cover" /></div>}
+                       {p.registrar_image_url && <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-neutral-100 z-30 shadow-sm"><img src={p.registrar_image_url} className="w-full h-full object-cover" /></div>}
+                       {p.consultant_image_url && <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-neutral-100 z-20 shadow-sm"><img src={p.consultant_image_url} className="w-full h-full object-cover" /></div>}
+                       {p.meal_image_url && <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-neutral-100 z-10 shadow-sm"><img src={p.meal_image_url} className="w-full h-full object-cover" /></div>}
                      </div>
                   </TableCell>
                   <TableCell className="py-4 pr-8 text-right">
@@ -199,7 +213,6 @@ export default function AdminDashboard() {
                     {page}
                   </Button>
                 )).filter((_, i) => {
-                  // Basic truncation logic: show current, first, last, and neighbors
                   if (totalPages <= 5) return true;
                   return Math.abs(i + 1 - currentPage) < 2 || i === 0 || i === totalPages - 1;
                 })}
@@ -265,30 +278,30 @@ export default function AdminDashboard() {
                       </h3>
                       
                       <div className="grid md:grid-cols-3 gap-4">
-                        <div className={`p-4 rounded-2xl border ${selectedPatient?.registrarId ? 'border-green-100 bg-green-50' : 'border-neutral-100 bg-neutral-50 opacity-50'}`}>
+                        <div className={`p-4 rounded-2xl border ${selectedPatient?.registrar_id ? 'border-green-100 bg-green-50' : 'border-neutral-100 bg-neutral-50 opacity-50'}`}>
                           <div className="flex items-center gap-2 mb-2">
-                            <ClipboardList className={`w-4 h-4 ${selectedPatient?.registrarId ? 'text-green-600' : 'text-neutral-400'}`} />
+                            <ClipboardList className={`w-4 h-4 ${selectedPatient?.registrar_id ? 'text-green-600' : 'text-neutral-400'}`} />
                             <span className="text-xs font-bold uppercase tracking-wider">Registration</span>
                           </div>
-                          <p className="text-[10px] text-neutral-500">{selectedPatient?.registrarId ? `Completed by ID: ${selectedPatient.registrarId.slice(0,6)}` : 'Incomplete'}</p>
+                          <p className="text-[10px] text-neutral-500">{selectedPatient?.registrar_id ? `Completed by ID: ${selectedPatient.registrar_id.slice(0,6)}` : 'Incomplete'}</p>
                         </div>
                         
-                        <div className={`p-4 rounded-2xl border ${selectedPatient?.consultantId ? 'border-green-100 bg-green-50' : 'border-neutral-100 bg-neutral-50 opacity-50'}`}>
+                        <div className={`p-4 rounded-2xl border ${selectedPatient?.consultant_id ? 'border-green-100 bg-green-50' : 'border-neutral-100 bg-neutral-50 opacity-50'}`}>
                           <div className="flex items-center gap-2 mb-2">
-                            <Stethoscope className={`w-4 h-4 ${selectedPatient?.consultantId ? 'text-green-600' : 'text-neutral-400'}`} />
+                            <Stethoscope className={`w-4 h-4 ${selectedPatient?.consultant_id ? 'text-green-600' : 'text-neutral-400'}`} />
                             <span className="text-xs font-bold uppercase tracking-wider">Consultation</span>
                           </div>
-                          <p className="text-[10px] text-neutral-500">{selectedPatient?.consultantId ? `Completed by ID: ${selectedPatient.consultantId.slice(0,6)}` : 'Incomplete'}</p>
+                          <p className="text-[10px] text-neutral-500">{selectedPatient?.consultant_id ? `Completed by ID: ${selectedPatient.consultant_id.slice(0,6)}` : 'Incomplete'}</p>
                         </div>
 
-                        <div className={`p-4 rounded-2xl border ${selectedPatient?.mealDistributorId ? 'border-green-100 bg-green-50' : 'border-neutral-100 bg-neutral-50 opacity-50'}`}>
+                        <div className={`p-4 rounded-2xl border ${selectedPatient?.meal_distributor_id ? 'border-green-100 bg-green-50' : 'border-neutral-100 bg-neutral-50 opacity-50'}`}>
                           <div className="flex items-center gap-2 mb-2">
-                            <Utensils className={`w-4 h-4 ${selectedPatient?.mealDistributorId ? 'text-green-600' : 'text-neutral-400'}`} />
+                            <Utensils className={`w-4 h-4 ${selectedPatient?.meal_distributor_id ? 'text-green-600' : 'text-neutral-400'}`} />
                             <span className="text-xs font-bold uppercase tracking-wider">Distribution</span>
                           </div>
                           <p className="text-[10px] text-neutral-500">
-                            {selectedPatient?.mealDistributorId 
-                              ? `Served at ${selectedPatient.mealServedAt ? new Date(selectedPatient.mealServedAt).toLocaleTimeString() : 'N/A'}` 
+                            {selectedPatient?.meal_distributor_id 
+                              ? `Served at ${selectedPatient.meal_served_at ? new Date(selectedPatient.meal_served_at).toLocaleTimeString() : 'N/A'}` 
                               : 'Incomplete'}
                           </p>
                         </div>
@@ -319,3 +332,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+

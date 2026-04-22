@@ -36,7 +36,7 @@ export function PatientSummary({ patient, className }: PatientSummaryProps) {
         { label: 'Age', value: `${patient.age} years` },
         { label: 'Gender', value: patient.gender },
         { label: 'Contact', value: patient.contact },
-        { label: 'ABHA/Aadhaar', value: patient.abhaId || patient.aadharNumber || 'N/A' },
+        { label: 'ABHA/Aadhaar', value: patient.abha_id || patient.aadhar_number || 'N/A' },
       ]
     },
     {
@@ -59,11 +59,11 @@ export function PatientSummary({ patient, className }: PatientSummaryProps) {
         { 
           label: 'Status', 
           value: <Badge className={cn(
-            patient.sickleCellStatus === 'SS' ? 'bg-rose-500' : 
-            patient.sickleCellStatus === 'AS' ? 'bg-orange-500' : 'bg-emerald-500'
-          )}>{patient.sickleCellStatus}</Badge> 
+            patient.sickle_cell_status === 'SS' ? 'bg-rose-500' : 
+            patient.sickle_cell_status === 'AS' ? 'bg-orange-500' : 'bg-emerald-500'
+          )}>{patient.sickle_cell_status}</Badge> 
         },
-        { label: 'Pre-existing', value: patient.preExistingDiagnosis ? `Yes (${patient.dateOfDiagnosis})` : 'No' },
+        { label: 'Pre-existing', value: patient.pre_existing_diagnosis ? `Yes (${patient.date_of_diagnosis})` : 'No' },
       ]
     },
     {
@@ -72,9 +72,9 @@ export function PatientSummary({ patient, className }: PatientSummaryProps) {
       color: 'text-purple-500',
       bg: 'bg-purple-50',
       fields: [
-        { label: 'First Onset', value: patient.firstSymptomOnset || 'N/A' },
-        { label: 'Transfusions', value: patient.bloodTransfusionsCount },
-        { label: 'Other Issues', value: patient.otherHealthIssues || 'None' },
+        { label: 'First Onset', value: patient.first_symptom_onset || 'N/A' },
+        { label: 'Transfusions', value: patient.blood_transfusions_count },
+        { label: 'Other Issues', value: patient.other_health_issues || 'None' },
       ]
     }
   ];
@@ -122,9 +122,9 @@ export function PatientSummary({ patient, className }: PatientSummaryProps) {
             <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider">Medication</h3>
           </div>
           <CardContent className="p-4 space-y-2 text-sm">
-            {patient.medicationHydroxyurea && <div><Badge variant="outline" className="mr-2">Hydroxyurea</Badge> {patient.dosageHydroxyurea}</div>}
-            {patient.medicationFolicAcid && <div><Badge variant="outline" className="mr-2">Folic Acid</Badge> {patient.dosageFolicAcid}</div>}
-            {!patient.medicationHydroxyurea && !patient.medicationFolicAcid && <p className="text-neutral-400 italic">No specific meds</p>}
+            {patient.medication_hydroxyurea && <div><Badge variant="outline" className="mr-2">Hydroxyurea</Badge> {patient.dosage_hydroxyurea}</div>}
+            {patient.medication_folic_acid && <div><Badge variant="outline" className="mr-2">Folic Acid</Badge> {patient.dosage_folic_acid}</div>}
+            {!patient.medication_hydroxyurea && !patient.medication_folic_acid && <p className="text-neutral-400 italic">No specific meds</p>}
           </CardContent>
         </Card>
 
@@ -149,32 +149,33 @@ export function PatientSummary({ patient, className }: PatientSummaryProps) {
             <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider">Counselling</h3>
           </div>
           <CardContent className="p-4 text-xs font-medium text-neutral-600 line-clamp-3">
-             {patient.counsellingTopics?.length || 0} topics discussed
+             {patient.counselling_topics?.length || 0} topics discussed
           </CardContent>
         </Card>
       </div>
 
       {/* Kit & Feedback */}
       <div className="flex flex-wrap gap-4">
-        <Badge variant={patient.nutritionKitDistributed ? "success" : "destructive"} className="gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none">
+        <Badge variant={patient.nutrition_kit_distributed ? "success" : "destructive"} className="gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none">
           <Package className="w-3 h-3" />
-          Kit: {patient.nutritionKitDistributed ? `Delivered (${patient.nutritionKitDate})` : 'Pending'}
+          Kit: {patient.nutrition_kit_distributed ? `Delivered (${patient.nutrition_kit_date})` : 'Pending'}
         </Badge>
         <Badge 
           variant="outline" 
           className={cn(
             "gap-1 px-3 py-1 border-none",
-            patient.mealRequired ? "bg-amber-100 text-amber-700" : "bg-neutral-100 text-neutral-400"
+            patient.meal_required ? "bg-amber-100 text-amber-700" : "bg-neutral-100 text-neutral-400"
           )}
         >
           <Utensils className="w-3 h-3" />
-          Meal Box: {patient.mealRequired ? (patient.mealServedAt ? `Delivered (${new Date(patient.mealServedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : 'Required') : 'Not Needed'}
+          Meal Box: {patient.meal_required ? (patient.meal_served_at ? `Delivered (${new Date(patient.meal_served_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : 'Required') : 'Not Needed'}
         </Badge>
         <Badge variant="outline" className="gap-1 px-3 py-1 bg-neutral-100 text-neutral-700 border-none">
           <ClipboardCheck className="w-3 h-3" />
-          Feedback Confirm: {patient.feedbackConfirmation ? 'Yes' : 'No'}
+          Feedback Confirm: {patient.feedback_confirmation ? 'Yes' : 'No'}
         </Badge>
       </div>
     </div>
   );
 }
+
