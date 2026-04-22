@@ -76,6 +76,7 @@ export interface Patient {
   counsellorOrganization?: string; // Default: Kiran Sewa Sansthan
 
   status: PatientStatus;
+  mealRequired: boolean;
   
   registrarNotes?: string;
   registrarImageUrl?: string;

@@ -512,6 +512,15 @@ export function CounsellingForm({ data, onChange, readOnly = false }: Counsellin
               className="rounded-xl"
             />
           </div>
+          <div className="flex items-center space-x-2 md:col-span-2 pt-4 border-t border-neutral-100">
+            <Checkbox 
+              id="meal-req" 
+              checked={!!data.mealRequired}
+              onCheckedChange={(checked) => handleChange('mealRequired', !!checked)}
+              disabled={readOnly}
+            />
+            <Label htmlFor="meal-req" className="font-bold text-primary">Meal Box Required for this Visit?</Label>
+          </div>
           <div className="flex items-center space-x-2 md:col-span-2">
             <Checkbox 
               id="kit-guide" 

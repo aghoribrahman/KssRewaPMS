@@ -23,7 +23,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 export default function RegistrarDashboard() {
   const { user, profile } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7;
   const lang = profile?.preferredLanguage || 'hi';
   const t = TRANSLATIONS[lang];
 
@@ -45,6 +48,7 @@ export default function RegistrarDashboard() {
     medicationFolicAcid: false,
     counsellingTopics: [],
     nutritionKitDistributed: false,
+    mealRequired: true,
     referral: [],
   });
 
@@ -74,6 +78,15 @@ export default function RegistrarDashboard() {
 
     return unsubscribe;
   }, [profile]);
+
+  const filteredPatients = patients.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    p.contact.includes(searchQuery)
+  );
+
+  const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedPatients = filteredPatients.slice(startIndex, startIndex + itemsPerPage);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +123,7 @@ export default function RegistrarDashboard() {
         medicationFolicAcid: false,
         counsellingTopics: [],
         nutritionKitDistributed: false,
+        mealRequired: true,
         referral: [],
       });
     } catch (error) {
@@ -155,16 +169,28 @@ export default function RegistrarDashboard() {
         </div>
       ) : (
         <Card className="rounded-3xl border-none shadow-xl shadow-neutral-200/40">
-          <CardHeader className="p-8 border-b border-neutral-100 flex flex-row items-center justify-between">
-            <CardTitle className="text-xl">
-              {lang === 'en' ? "Recent Registrations" : "हाल के पंजीकरण"}
-            </CardTitle>
-            <div className="flex items-center gap-4">
+          <CardHeader className="p-8 border-b border-neutral-100 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <CardTitle className="text-xl">
+                {lang === 'en' ? "Recent Registrations" : "हाल के पंजीकरण"}
+              </CardTitle>
               {profile?.role !== 'admin' && profile?.assignedDistricts && (
-                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 rounded-full px-3 py-1">
-                  Limited to: {profile.assignedDistricts.join(', ')}
+                <Badge variant="outline" className="w-fit bg-primary/5 text-primary border-primary/20 rounded-full px-3 py-0.5 text-[10px] font-bold">
+                  District: {profile.assignedDistricts.join(', ')}
                 </Badge>
               )}
+            </div>
+            
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                <Input 
+                  placeholder={lang === 'en' ? "Search by name or contact..." : "नाम या संपर्क से खोजें..."}
+                  className="pl-10 rounded-2xl border-neutral-200 focus:ring-primary/20 h-10 text-sm"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
@@ -179,7 +205,7 @@ export default function RegistrarDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {patients.map((p) => (
+                {paginatedPatients.map((p) => (
                   <TableRow key={p.id} className="hover:bg-neutral-50/50 transition-colors">
                     <TableCell className="py-4 pl-8">
                       <div className="flex items-center gap-3">
@@ -219,10 +245,37 @@ export default function RegistrarDashboard() {
                 ))}
               </TableBody>
             </Table>
-            {patients.length === 0 && (
+
+            <div className="p-4 border-t border-neutral-100 bg-neutral-50/30 flex items-center justify-between px-8">
+               <p className="text-xs text-neutral-500 font-medium tracking-tight">
+                {lang === 'en' ? 'Page' : 'पृष्ठ'} {currentPage} {lang === 'en' ? 'of' : 'का'} {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="rounded-xl h-8 px-4"
+                >
+                  {lang === 'en' ? 'Prev' : 'पिछला'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="rounded-xl h-8 px-4"
+                >
+                  {lang === 'en' ? 'Next' : 'अगला'}
+                </Button>
+              </div>
+            </div>
+
+            {filteredPatients.length === 0 && (
               <div className="p-20 text-center text-neutral-400">
-                <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                <p>No patients registered yet today.</p>
+                <Search className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                <p>{searchQuery ? (lang === 'en' ? "No results found for your search." : "आपकी खोज के लिए कोई परिणाम नहीं मिला।") : (lang === 'en' ? "No patients registered yet today." : "आज अभी तक कोई मरीज पंजीकृत नहीं हुआ है।")}</p>
               </div>
             )}
           </CardContent>

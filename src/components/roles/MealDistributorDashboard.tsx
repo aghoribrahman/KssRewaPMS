@@ -14,18 +14,23 @@ import { TRANSLATIONS } from '../../constants/mp_data';
 import { Utensils, CheckCircle2, Clock, MapPin, User, ShieldCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PatientSummary } from '../PatientSummary';
 import { CounsellingForm } from '../CounsellingForm';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function MealDistributorDashboard() {
   const { user, profile } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [visibleCount, setVisibleCount] = useState(6);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [formData, setFormData] = useState<Partial<Patient>>({});
   const [imageUrl, setImageUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const lang = profile?.preferredLanguage || 'hi';
   const t = TRANSLATIONS[lang];
+
+  const visiblePatients = patients.slice(0, visibleCount);
 
   useEffect(() => {
     if (selectedPatient) {
@@ -101,7 +106,7 @@ export default function MealDistributorDashboard() {
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {patients.map((p) => (
+        {visiblePatients.map((p) => (
           <Card key={p.id} className="rounded-3xl border-none shadow-xl shadow-neutral-200/40 overflow-hidden group hover:shadow-2xl transition-all duration-300">
             <div className="h-2 bg-primary w-full" />
             <CardHeader className="p-6">
@@ -138,6 +143,14 @@ export default function MealDistributorDashboard() {
           </Card>
         ))}
         
+        {patients.length > visibleCount && (
+          <div className="col-span-full flex justify-center py-6">
+            <Button variant="outline" onClick={() => setVisibleCount(prev => prev + 6)} className="rounded-xl px-10 h-12 font-bold border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors">
+              {lang === 'en' ? 'Load More Patients' : 'अधिक मरीज लोड करें'}
+            </Button>
+          </div>
+        )}
+        
         {patients.length === 0 && (
           <div className="col-span-full p-20 text-center border-2 border-dashed border-neutral-200 rounded-3xl bg-neutral-50/50">
             <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-neutral-200" />
@@ -147,9 +160,9 @@ export default function MealDistributorDashboard() {
       </div>
 
       <Dialog open={!!selectedPatient} onOpenChange={() => setSelectedPatient(null)}>
-        <DialogContent className="max-w-[95vw] md:max-w-4xl p-0 overflow-hidden border-none shadow-2xl h-[90vh]">
-          <div className="flex flex-col h-full bg-white">
-            <div className="bg-neutral-900 text-white p-6 flex flex-row items-center justify-between">
+        <DialogContent className="max-w-[95vw] md:max-w-4xl p-0 overflow-hidden border-none shadow-2xl h-[90vh] flex flex-col gap-0">
+          <div className="flex flex-col flex-1 h-full bg-white overflow-hidden">
+            <div className="bg-neutral-900 text-white p-6 flex shrink-0 flex-row items-center justify-between">
               <div>
                 <DialogTitle className="text-2xl font-bold">{selectedPatient?.name}</DialogTitle>
                 <p className="text-neutral-400 text-sm">
@@ -161,13 +174,30 @@ export default function MealDistributorDashboard() {
               </Button>
             </div>
 
-            <ScrollArea className="flex-1 p-6 md:p-8">
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 min-h-0 bg-white">
               <div className="space-y-8 pb-12">
-                <CounsellingForm 
-                  data={formData} 
-                  onChange={setFormData}
-                  readOnly={true}
-                />
+                <Tabs defaultValue="summary" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 rounded-xl h-12 mb-8 bg-neutral-100 p-1">
+                    <TabsTrigger value="summary" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                      {lang === 'en' ? "Quick Summary" : "त्वरित सारांश"}
+                    </TabsTrigger>
+                    <TabsTrigger value="form" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                      {lang === 'en' ? "Full Record" : "पूरा रिकॉर्ड"}
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="summary">
+                    <PatientSummary patient={formData as any} />
+                  </TabsContent>
+                  
+                  <TabsContent value="form">
+                    <CounsellingForm 
+                      data={formData} 
+                      onChange={setFormData}
+                      readOnly={true}
+                    />
+                  </TabsContent>
+                </Tabs>
                 
                 <div className="space-y-6 pt-8 border-t border-neutral-100">
                   <h3 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
@@ -197,9 +227,9 @@ export default function MealDistributorDashboard() {
                   </div>
                 </div>
               </div>
-            </ScrollArea>
+            </div>
 
-            <div className="p-6 border-t border-neutral-100 flex flex-col sm:flex-row gap-3 bg-neutral-50 px-8">
+            <div className="p-6 border-t border-neutral-100 flex shrink-0 flex-col sm:flex-row gap-3 bg-neutral-50 px-8">
               <Button variant="outline" className="flex-1 rounded-xl h-12 order-2 sm:order-1 font-semibold" onClick={() => setSelectedPatient(null)}>
                 {lang === 'en' ? "Cancel" : "रद्द करें"}
               </Button>

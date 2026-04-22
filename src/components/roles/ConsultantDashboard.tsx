@@ -15,6 +15,8 @@ import { TRANSLATIONS } from '../../constants/mp_data';
 import { Stethoscope, Clock, FileText, ArrowRight, MapPin } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PatientSummary } from '../PatientSummary';
 import { CounsellingForm } from '../CounsellingForm';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -22,10 +24,16 @@ export default function ConsultantDashboard() {
   const { user, profile } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
   const [formData, setFormData] = useState<Partial<Patient>>({});
   const [submitting, setSubmitting] = useState(false);
   const lang = profile?.preferredLanguage || 'hi';
   const t = TRANSLATIONS[lang];
+
+  const totalPages = Math.ceil(patients.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedPatients = patients.slice(startIndex, startIndex + itemsPerPage);
 
   useEffect(() => {
     if (selectedPatient) {
@@ -69,13 +77,20 @@ export default function ConsultantDashboard() {
       // Create a clean payload with only allowed/relevant fields
       const { id, createdAt, registrarId, ...cleanData } = formData as any;
       
+      const nextStatus = formData.mealRequired ? 'pending_meal' : 'complete';
+      
       await updateDoc(doc(db, 'patients', selectedPatient.id), {
         ...cleanData,
-        status: 'pending_meal',
+        status: nextStatus,
         consultantId: user?.uid,
         updatedAt: serverTimestamp(),
       });
-      toast.success("Consultation complete. Patient moved to Meal Distribution.");
+      
+      const successMsg = nextStatus === 'pending_meal' 
+        ? "Consultation complete. Patient moved to Meal Distribution."
+        : "Consultation complete. Patient cycle finished (No meal box required).";
+        
+      toast.success(successMsg);
       setSelectedPatient(null);
       setFormData({});
     } catch (error) {
@@ -123,7 +138,7 @@ export default function ConsultantDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {patients.map((p) => (
+                  {paginatedPatients.map((p) => (
                     <TableRow key={p.id} className="hover:bg-neutral-50/50 cursor-pointer" onClick={() => setSelectedPatient(p)}>
                       <TableCell className="py-4 pl-8">
                         <div>
@@ -148,6 +163,33 @@ export default function ConsultantDashboard() {
                   ))}
                 </TableBody>
               </Table>
+
+              <div className="p-4 border-t border-neutral-100 bg-neutral-50/30 flex items-center justify-between px-8">
+                <p className="text-xs text-neutral-500 font-medium tracking-tight">
+                  {lang === 'en' ? 'Page' : 'पृष्ठ'} {currentPage} {lang === 'en' ? 'of' : 'का'} {totalPages}
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={(e) => { e.stopPropagation(); setCurrentPage(prev => Math.max(prev - 1, 1)); }}
+                    disabled={currentPage === 1}
+                    className="rounded-xl h-8 px-4"
+                  >
+                    {lang === 'en' ? 'Prev' : 'पिछला'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={(e) => { e.stopPropagation(); setCurrentPage(prev => Math.min(prev + 1, totalPages)); }}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    className="rounded-xl h-8 px-4"
+                  >
+                    {lang === 'en' ? 'Next' : 'अगला'}
+                  </Button>
+                </div>
+              </div>
+
               {patients.length === 0 && (
                 <div className="p-20 text-center text-neutral-400">
                   <Stethoscope className="w-12 h-12 mx-auto mb-4 opacity-20" />
@@ -174,9 +216,9 @@ export default function ConsultantDashboard() {
       </div>
 
       <Dialog open={!!selectedPatient} onOpenChange={() => setSelectedPatient(null)}>
-        <DialogContent className="max-w-[95vw] md:max-w-4xl p-0 overflow-hidden border-none shadow-2xl h-[90vh]">
-          <div className="flex flex-col h-full bg-white">
-            <div className="bg-neutral-900 text-white p-6 flex flex-row items-center justify-between">
+        <DialogContent className="max-w-[95vw] md:max-w-4xl p-0 overflow-hidden border-none shadow-2xl h-[90vh] flex flex-col gap-0">
+          <div className="flex flex-col flex-1 h-full bg-white overflow-hidden">
+            <div className="bg-neutral-900 text-white p-6 flex shrink-0 flex-row items-center justify-between">
               <div>
                 <DialogTitle className="text-2xl font-bold">{selectedPatient?.name}</DialogTitle>
                 <p className="text-neutral-400 text-sm">
@@ -188,12 +230,29 @@ export default function ConsultantDashboard() {
               </Button>
             </div>
 
-            <ScrollArea className="flex-1 p-6 md:p-8">
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 min-h-0 bg-white">
               <div className="space-y-8 pb-12">
-                <CounsellingForm 
-                  data={formData} 
-                  onChange={setFormData}
-                />
+                <Tabs defaultValue="summary" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 rounded-xl h-12 mb-8 bg-neutral-100 p-1">
+                    <TabsTrigger value="summary" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                      {lang === 'en' ? "Quick Summary" : "त्वरित सारांश"}
+                    </TabsTrigger>
+                    <TabsTrigger value="form" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                      {lang === 'en' ? "Detailed Form" : "विस्तृत फॉर्म"}
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="summary">
+                    <PatientSummary patient={formData as any} />
+                  </TabsContent>
+                  
+                  <TabsContent value="form">
+                    <CounsellingForm 
+                      data={formData} 
+                      onChange={setFormData}
+                    />
+                  </TabsContent>
+                </Tabs>
                 
                 <div className="space-y-4 pt-8 border-t border-neutral-100">
                    <h3 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
@@ -214,9 +273,9 @@ export default function ConsultantDashboard() {
                   </div>
                 </div>
               </div>
-            </ScrollArea>
+            </div>
 
-            <div className="p-6 border-t border-neutral-100 flex flex-col sm:flex-row gap-3 bg-neutral-50 px-8">
+            <div className="p-6 border-t border-neutral-100 flex shrink-0 flex-col sm:flex-row gap-3 bg-neutral-50 px-8">
               <Button variant="outline" className="flex-1 rounded-xl h-12 order-2 sm:order-1 font-semibold" onClick={() => setSelectedPatient(null)}>
                 {lang === 'en' ? "Cancel" : "रद्द करें"}
               </Button>
