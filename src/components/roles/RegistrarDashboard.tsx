@@ -239,7 +239,7 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
       )}
 
       {isRegistering ? (
-        <div className="animate-in fade-in duration-500 p-4 space-y-4">
+        <div className="animate-in fade-in duration-500 space-y-4">
           <Button 
             variant="ghost" 
             onClick={() => setIsRegistering(false)}

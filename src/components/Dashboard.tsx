@@ -58,7 +58,7 @@ export default function Dashboard() {
   return (
     <>
       <Navbar currentView={currentView} onViewChange={setCurrentView} />
-      <main className={`flex-1 w-full mx-auto transition-all duration-300 ${isImmersive ? 'p-0 max-w-full' : 'max-w-7xl p-4 md:p-8'}`}>
+      <main className={`flex-1 w-full mx-auto transition-all duration-300 ${isImmersive ? 'p-2 max-w-full' : 'max-w-7xl p-4 md:p-8'}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={`${profile?.role}-${currentView}`}

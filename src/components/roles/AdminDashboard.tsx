@@ -42,7 +42,7 @@ export default function AdminDashboard() {
       } else {
         const patientsData = data as Patient[];
         setPatients(patientsData);
-        
+
         const total = patientsData.length;
         const completed = patientsData.filter(p => p.status === 'complete').length;
         const pending = total - completed;
@@ -81,16 +81,16 @@ export default function AdminDashboard() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-neutral-900 tracking-tight">
+          <h2 className="text-2xl font-bold text-neutral-900 tracking-tight">
             {TRANSLATIONS.en.systemOversight} / {TRANSLATIONS.hi.systemOversight}
           </h2>
           <p className="text-neutral-500">Madhya Pradesh Patient Management Oversight • Live Data Feed</p>
         </div>
         <div className="flex gap-2">
-           <Badge variant="outline" className="rounded-full px-4 py-1.5 border-neutral-200 bg-white shadow-sm flex gap-2 items-center">
-             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-             Live Analytics
-           </Badge>
+          <Badge variant="outline" className="rounded-full px-4 py-1.5 border-neutral-200 bg-white shadow-sm flex gap-2 items-center">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            Live Analytics
+          </Badge>
         </div>
       </div>
 
@@ -110,7 +110,7 @@ export default function AdminDashboard() {
             <Card className="rounded-3xl border-none shadow-xl shadow-neutral-200/40">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color}`}>
-                   <stat.icon className="w-6 h-6" />
+                  <stat.icon className="w-6 h-6" />
                 </div>
                 <div>
                   <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{stat.label}</p>
@@ -166,16 +166,16 @@ export default function AdminDashboard() {
                     </div>
                   </TableCell>
                   <TableCell className="py-4">
-                     <div className="flex -space-x-2">
-                       {p.registrar_image_url && <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-neutral-100 z-30 shadow-sm"><img src={p.registrar_image_url} className="w-full h-full object-cover" /></div>}
-                       {p.consultant_image_url && <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-neutral-100 z-20 shadow-sm"><img src={p.consultant_image_url} className="w-full h-full object-cover" /></div>}
-                       {p.meal_image_url && <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-neutral-100 z-10 shadow-sm"><img src={p.meal_image_url} className="w-full h-full object-cover" /></div>}
-                     </div>
+                    <div className="flex -space-x-2">
+                      {p.registrar_image_url && <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-neutral-100 z-30 shadow-sm"><img src={p.registrar_image_url} className="w-full h-full object-cover" /></div>}
+                      {p.consultant_image_url && <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-neutral-100 z-20 shadow-sm"><img src={p.consultant_image_url} className="w-full h-full object-cover" /></div>}
+                      {p.meal_image_url && <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-neutral-100 z-10 shadow-sm"><img src={p.meal_image_url} className="w-full h-full object-cover" /></div>}
+                    </div>
                   </TableCell>
                   <TableCell className="py-4 pr-8 text-right">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="rounded-full group-hover:bg-neutral-100 transition-colors"
                       onClick={() => setSelectedPatient(p)}
                     >
@@ -186,15 +186,15 @@ export default function AdminDashboard() {
               ))}
             </TableBody>
           </Table>
-          
+
           <div className="p-4 border-t border-neutral-100 bg-neutral-50/30 flex items-center justify-between">
             <p className="text-sm text-neutral-500">
               Showing <span className="font-medium">{Math.min(startIndex + 1, patients.length)}</span> to <span className="font-medium">{Math.min(startIndex + itemsPerPage, patients.length)}</span> of <span className="font-medium">{patients.length}</span> patients
             </p>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
                 className="rounded-lg"
@@ -217,9 +217,9 @@ export default function AdminDashboard() {
                   return Math.abs(i + 1 - currentPage) < 2 || i === 0 || i === totalPages - 1;
                 })}
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages || totalPages === 0}
                 className="rounded-lg"
@@ -231,8 +231,8 @@ export default function AdminDashboard() {
 
           {patients.length === 0 && (
             <div className="p-20 text-center text-neutral-400">
-               <Shield className="w-12 h-12 mx-auto mb-4 opacity-10" />
-               <p>No records found in the system.</p>
+              <Shield className="w-12 h-12 mx-auto mb-4 opacity-10" />
+              <p>No records found in the system.</p>
             </div>
           )}
         </CardContent>
@@ -266,32 +266,32 @@ export default function AdminDashboard() {
                       {lang === 'en' ? "Full Record" : "पूरा रिकॉर्ड"}
                     </TabsTrigger>
                   </TabsList>
-                  
+
                   <TabsContent value="summary">
                     <PatientSummary patient={selectedPatient as any} />
-                    
+
                     {/* Admin Specific: Flow Status */}
                     <div className="mt-8 pt-8 border-t border-neutral-100 space-y-6">
                       <h3 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
                         <Activity className="w-5 h-5 text-primary" />
                         System Flow Audit
                       </h3>
-                      
+
                       <div className="grid md:grid-cols-3 gap-4">
                         <div className={`p-4 rounded-2xl border ${selectedPatient?.registrar_id ? 'border-green-100 bg-green-50' : 'border-neutral-100 bg-neutral-50 opacity-50'}`}>
                           <div className="flex items-center gap-2 mb-2">
                             <ClipboardList className={`w-4 h-4 ${selectedPatient?.registrar_id ? 'text-green-600' : 'text-neutral-400'}`} />
                             <span className="text-xs font-bold uppercase tracking-wider">Registration</span>
                           </div>
-                          <p className="text-[10px] text-neutral-500">{selectedPatient?.registrar_id ? `Completed by ID: ${selectedPatient.registrar_id.slice(0,6)}` : 'Incomplete'}</p>
+                          <p className="text-[10px] text-neutral-500">{selectedPatient?.registrar_id ? `Completed by ID: ${selectedPatient.registrar_id.slice(0, 6)}` : 'Incomplete'}</p>
                         </div>
-                        
+
                         <div className={`p-4 rounded-2xl border ${selectedPatient?.consultant_id ? 'border-green-100 bg-green-50' : 'border-neutral-100 bg-neutral-50 opacity-50'}`}>
                           <div className="flex items-center gap-2 mb-2">
                             <Stethoscope className={`w-4 h-4 ${selectedPatient?.consultant_id ? 'text-green-600' : 'text-neutral-400'}`} />
                             <span className="text-xs font-bold uppercase tracking-wider">Consultation</span>
                           </div>
-                          <p className="text-[10px] text-neutral-500">{selectedPatient?.consultant_id ? `Completed by ID: ${selectedPatient.consultant_id.slice(0,6)}` : 'Incomplete'}</p>
+                          <p className="text-[10px] text-neutral-500">{selectedPatient?.consultant_id ? `Completed by ID: ${selectedPatient.consultant_id.slice(0, 6)}` : 'Incomplete'}</p>
                         </div>
 
                         <div className={`p-4 rounded-2xl border ${selectedPatient?.meal_distributor_id ? 'border-green-100 bg-green-50' : 'border-neutral-100 bg-neutral-50 opacity-50'}`}>
@@ -300,19 +300,19 @@ export default function AdminDashboard() {
                             <span className="text-xs font-bold uppercase tracking-wider">Distribution</span>
                           </div>
                           <p className="text-[10px] text-neutral-500">
-                            {selectedPatient?.meal_distributor_id 
-                              ? `Served at ${selectedPatient.meal_served_at ? new Date(selectedPatient.meal_served_at).toLocaleTimeString() : 'N/A'}` 
+                            {selectedPatient?.meal_distributor_id
+                              ? `Served at ${selectedPatient.meal_served_at ? new Date(selectedPatient.meal_served_at).toLocaleTimeString() : 'N/A'}`
                               : 'Incomplete'}
                           </p>
                         </div>
                       </div>
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="form">
-                    <CounsellingForm 
-                      data={selectedPatient || {}} 
-                      onChange={() => {}} // Read only for Admin
+                    <CounsellingForm
+                      data={selectedPatient || {}}
+                      onChange={() => { }} // Read only for Admin
                       readOnly={true}
                     />
                   </TabsContent>
