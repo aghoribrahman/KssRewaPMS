@@ -19,6 +19,7 @@ import { PatientSummary } from '../PatientSummary';
 import { CounsellingForm } from '../CounsellingForm';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePatients } from '../../hooks/usePatients';
+import { useStore } from '../../store/useStore';
 import { Pagination } from '../shared/Pagination';
 
 export default function ConsultantDashboard() {
