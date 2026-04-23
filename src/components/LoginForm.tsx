@@ -37,8 +37,8 @@ export function LoginForm() {
       <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
         <Activity className="w-8 h-8 text-primary" />
       </div>
-      <h1 className="text-3xl font-bold tracking-tight text-neutral-900 mb-2 text-center">CareFlow PMS</h1>
-      <p className="text-neutral-500 mb-8 text-center">Secure patient tracking for hospital workflows.</p>
+      <h1 className="text-3xl font-bold tracking-tight text-neutral-900 mb-2 text-center">Kiran Seva Sansthan</h1>
+      <p className="text-neutral-500 mb-8 text-center">Secure patient tracking for Kiran Seva Sansthan.</p>
       
       <form onSubmit={handleLogin} className="space-y-4 text-left">
         <div className="space-y-2">

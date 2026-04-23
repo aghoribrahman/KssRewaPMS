@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { Patient } from '../../types';
 import { usePatients } from '../../hooks/usePatients';
+import { useStore } from '../../store/useStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,10 +16,12 @@ import { ImageUpload } from '../ImageUpload';
 import { toast } from 'sonner';
 import { MADHYA_PRADESH_DISTRICTS, TRANSLATIONS } from '../../constants/mp_data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Search, UserPlus, Clock, ClipboardList, MapPin, Users, Activity, CheckCircle, TrendingUp, ArrowLeft } from 'lucide-react';
+import { PlusCircle, Search, UserPlus, Clock, ClipboardList, MapPin, Users, Activity, CheckCircle, TrendingUp, ArrowLeft, WifiOff } from 'lucide-react';
 
 import { CounsellingForm } from '../CounsellingForm';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+import { Pagination } from '../shared/Pagination';
 
 interface RegistrarDashboardProps {
   onImmersiveChange?: (immersive: boolean) => void;
@@ -26,11 +29,17 @@ interface RegistrarDashboardProps {
 
 export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashboardProps) {
   const { user, profile } = useAuth();
-  const { patients, loading } = usePatients({ limit: 50, realtime: true });
+  const { patients, loading, isOffline, isSyncing, pendingCount } = usePatients({ limit: 50, realtime: true });
+  const addToSyncQueue = useStore(state => state.addToSyncQueue);
   const [searchQuery, setSearchQuery] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 7;
+
+  // Reset to page 1 when searching
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const lang = profile?.preferred_language || 'hi';
   const t = TRANSLATIONS[lang];
@@ -100,19 +109,13 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
     }
 
     try {
-      const { error } = await supabase
-        .from('patients')
-        .insert([{
-          ...formData,
-          status: 'pending_consultation',
-          registrar_id: user?.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }]);
+      addToSyncQueue('INSERT', {
+        ...formData,
+        status: 'pending_consultation',
+        registrar_id: user?.id,
+      });
 
-      if (error) throw error;
-
-      toast.success(lang === 'en' ? "Patient registered!" : "मरीज पंजीकृत!");
+      toast.success(lang === 'en' ? "Registration queued!" : "पंजीकरण कतार में!");
       setIsRegistering(false);
       setFormData({
         name: '',
@@ -155,8 +158,20 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
             <h2 className="font-black text-neutral-900 tracking-tight leading-tight">
               {getTimeGreeting()}, {profile?.display_name || (lang === 'en' ? 'Registrar' : 'पंजीकार')}
             </h2>
+            {isSyncing && (
+              <Badge variant="outline" className="rounded-full px-3 py-1 bg-blue-50 text-blue-600 animate-pulse border-blue-100 flex gap-2 items-center">
+                <Activity className="w-3 h-3" />
+                Syncing {pendingCount} records...
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-3">
+            {isOffline && (
+              <Badge variant="outline" className="rounded-full px-4 py-1.5 border-rose-200 bg-rose-50 text-rose-600 shadow-sm flex gap-2 items-center font-bold">
+                <WifiOff className="w-4 h-4" />
+                OFFLINE MODE (Cached)
+              </Badge>
+            )}
             <Button
               onClick={() => setIsRegistering(!isRegistering)}
               className={`rounded-2xl gap-3 h-12 px-6 text-sm font-bold transition-all duration-300 shadow-2xl ${isRegistering
@@ -381,31 +396,14 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
               </div>
             )}
 
-            {filteredPatients.length > itemsPerPage && (
-              <div className="mt-8 p-4 glass-morphism rounded-3xl flex items-center justify-between">
-                <p className="text-xs text-neutral-500 font-bold">
-                  {lang === 'en' ? 'Showing' : 'दिखा रहा है'} <span className="text-neutral-900">{startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredPatients.length)}</span> {lang === 'en' ? 'of' : 'का'} <span className="text-neutral-900">{filteredPatients.length}</span>
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="rounded-2xl h-10 px-4 text-xs font-bold border-neutral-200"
-                  >
-                    {lang === 'en' ? 'Previous' : 'पिछला'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    className="rounded-2xl h-10 px-4 text-xs font-bold border-neutral-200"
-                  >
-                    {lang === 'en' ? 'Next' : 'अगला'}
-                  </Button>
-                </div>
-              </div>
-            )}
+            <Pagination 
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={filteredPatients.length}
+              itemsPerPage={itemsPerPage}
+              className="mt-8"
+            />
           </CardContent>
         </Card>
       )}

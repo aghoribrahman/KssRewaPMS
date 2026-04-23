@@ -6,6 +6,7 @@ import AdminDashboard from './roles/AdminDashboard';
 import RegistrarDashboard from './roles/RegistrarDashboard';
 import ConsultantDashboard from './roles/ConsultantDashboard';
 import MealDistributorDashboard from './roles/MealDistributorDashboard';
+import VisitorDashboard from './roles/VisitorDashboard';
 import AdminSettings from './AdminSettings';
 import { LoginForm } from './LoginForm';
 import { motion, AnimatePresence } from 'motion/react';
@@ -50,6 +51,8 @@ export default function Dashboard() {
         return <ConsultantDashboard />;
       case 'meal_distributor':
         return <MealDistributorDashboard />;
+      case 'visitor':
+        return <VisitorDashboard />;
       default:
         return <div className="p-8 text-center">Unrecognized role. Contact Admin.</div>;
     }

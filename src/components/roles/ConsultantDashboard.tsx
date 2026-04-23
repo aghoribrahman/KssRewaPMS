@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { ImageUpload } from '../ImageUpload';
 import { toast } from 'sonner';
 import { TRANSLATIONS } from '../../constants/mp_data';
-import { Stethoscope, Clock, FileText, ArrowRight, MapPin } from 'lucide-react';
+import { Stethoscope, Clock, FileText, ArrowRight, MapPin, WifiOff } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,10 +19,12 @@ import { PatientSummary } from '../PatientSummary';
 import { CounsellingForm } from '../CounsellingForm';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePatients } from '../../hooks/usePatients';
+import { Pagination } from '../shared/Pagination';
 
 export default function ConsultantDashboard() {
   const { user, profile } = useAuth();
-  const { patients, loading } = usePatients({ status: 'pending_consultation', realtime: true });
+  const { patients, loading, isOffline, isSyncing, pendingCount } = usePatients({ status: 'pending_consultation', realtime: true });
+  const addToSyncQueue = useStore(state => state.addToSyncQueue);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
@@ -48,33 +50,29 @@ export default function ConsultantDashboard() {
     }
 
 
-    setSubmitting(true);
     try {
       const nextStatus = formData.meal_required ? 'pending_meal' : 'complete';
 
-      
-      const { error } = await supabase
-        .from('patients')
-        .update({
-          ...formData,
-          status: nextStatus,
-          consultant_id: user?.id,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', selectedPatient.id);
+      addToSyncQueue('UPDATE', {
+        ...formData,
+        status: nextStatus,
+        consultant_id: user?.id,
+      }, selectedPatient.id);
 
-      if (error) throw error;
-      
       const successMsg = nextStatus === 'pending_meal' 
-        ? "Consultation complete. Patient moved to Meal Distribution."
-        : "Consultation complete. Patient cycle finished (No meal box required).";
+        ? "Review queued. Patient moved to Meal Distribution."
+        : "Review queued. Patient cycle finished.";
         
       toast.success(successMsg);
       setSelectedPatient(null);
       setFormData({});
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Failed to update record");
+      if (error.message === 'CONFLICT_DETECTED' || error.code === '404') {
+        toast.error("Race condition detected! Another staff member updated this patient. Please refresh.");
+      } else {
+        toast.error("Failed to update record. Check connection.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -88,14 +86,25 @@ export default function ConsultantDashboard() {
             {TRANSLATIONS.en.clinicalReview} / {TRANSLATIONS.hi.clinicalReview}
           </h2>
           <p className="text-neutral-500">Madhya Pradesh Regional Health Center • Clinical Oversight</p>
+          {isSyncing && (
+            <Badge variant="outline" className="rounded-full px-3 py-1 bg-blue-50 text-blue-600 animate-pulse border-blue-100 flex gap-2 items-center mt-2 w-fit">
+              <FileText className="w-3 h-3" />
+              Syncing {pendingCount} records...
+            </Badge>
+          )}
         </div>
+        {isOffline && (
+          <Badge variant="outline" className="rounded-full px-4 py-1.5 border-rose-200 bg-rose-50 text-rose-600 shadow-sm flex gap-2 items-center font-bold">
+            <WifiOff className="w-3.5 h-3.5" />
+            OFFLINE MODE (Cached)
+          </Badge>
+        )}
         {profile?.role !== 'admin' && profile?.assigned_districts && (
           <div className="flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-xl border border-primary/10">
             <MapPin className="w-4 h-4" />
             <span className="text-xs font-bold uppercase tracking-tight">Accessing Dist: {profile.assigned_districts.join(', ')}</span>
           </div>
         )}
-
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -144,31 +153,14 @@ export default function ConsultantDashboard() {
                 </TableBody>
               </Table>
 
-              <div className="p-4 border-t border-neutral-100 bg-neutral-50/30 flex items-center justify-between px-8">
-                <p className="text-xs text-neutral-500 font-medium tracking-tight">
-                  {lang === 'en' ? 'Page' : 'पृष्ठ'} {currentPage} {lang === 'en' ? 'of' : 'का'} {totalPages}
-                </p>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={(e) => { e.stopPropagation(); setCurrentPage(prev => Math.max(prev - 1, 1)); }}
-                    disabled={currentPage === 1}
-                    className="rounded-xl h-8 px-4"
-                  >
-                    {lang === 'en' ? 'Prev' : 'पिछला'}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={(e) => { e.stopPropagation(); setCurrentPage(prev => Math.min(prev + 1, totalPages)); }}
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    className="rounded-xl h-8 px-4"
-                  >
-                    {lang === 'en' ? 'Next' : 'अगला'}
-                  </Button>
-                </div>
-              </div>
+              <Pagination 
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={patients.length}
+                itemsPerPage={itemsPerPage}
+                className="px-6 border-t border-neutral-100 bg-neutral-50/30"
+              />
 
               {patients.length === 0 && (
                 <div className="p-20 text-center text-neutral-400">

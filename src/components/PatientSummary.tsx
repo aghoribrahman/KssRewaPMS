@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Patient } from '../types';
+import { useAuth } from '../hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -24,7 +25,16 @@ interface PatientSummaryProps {
 }
 
 export function PatientSummary({ patient, className }: PatientSummaryProps) {
+  const { profile } = useAuth();
   if (!patient) return null;
+
+  const isVisitor = profile?.role === 'visitor';
+
+  const maskValue = (val: string | undefined, type: 'contact' | 'id') => {
+    if (!val || !isVisitor) return val || 'N/A';
+    if (type === 'contact') return val.replace(/(\d{2})\d+(\d{2})/, '$1XXXXXX$2');
+    return val.replace(/(.{2}).+(.{2})/, '$1XXXXXXXX$2');
+  };
 
   const sections = [
     {
@@ -35,8 +45,8 @@ export function PatientSummary({ patient, className }: PatientSummaryProps) {
       fields: [
         { label: 'Age', value: `${patient.age} years` },
         { label: 'Gender', value: patient.gender },
-        { label: 'Contact', value: patient.contact },
-        { label: 'ABHA/Aadhaar', value: patient.abha_id || patient.aadhar_number || 'N/A' },
+        { label: 'Contact', value: maskValue(patient.contact, 'contact') },
+        { label: 'ABHA/Aadhaar', value: maskValue(patient.abha_id || patient.aadhar_number, 'id') },
       ]
     },
     {

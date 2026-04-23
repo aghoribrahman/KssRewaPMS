@@ -1,7 +1,8 @@
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Activity, User as UserIcon, Shield, Search, Map as MapIcon, Check, Languages } from 'lucide-react';
+import { LogOut, Activity, User as UserIcon, Shield, Search, Map as MapIcon, Check, Languages, Cloud, RefreshCw } from 'lucide-react';
+import { useSyncStatus } from '../store/useStore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserRole } from '../types';
 import { MADHYA_PRADESH_DISTRICTS } from '../constants/mp_data';
@@ -17,6 +18,7 @@ interface NavbarProps {
 
 export function Navbar({ currentView, onViewChange }: NavbarProps) {
   const { profile, signOut, updateRole, updateDistricts, updateLanguage } = useAuth();
+  const { isSyncing, pendingCount, failedCount } = useSyncStatus();
   const [isDistrictOpen, setIsDistrictOpen] = useState(false);
 
   const toggleDistrict = (district: string) => {
@@ -42,8 +44,8 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
               <Activity className="w-6 h-6 text-white" />
             </div>
             <div className="hidden md:block">
-              <h1 className="font-bold tracking-tight text-neutral-900 leading-none mb-1">CareFlow MP</h1>
-              <p className="text-[10px] font-medium text-neutral-400 uppercase tracking-widest leading-none">Madhya Pradesh PMS</p>
+              <h1 className="font-bold tracking-tight text-neutral-900 leading-none mb-1">Kiran Seva Sansthan</h1>
+              <p className="text-[10px] font-medium text-neutral-400 uppercase tracking-widest leading-none">Patient Management System</p>
             </div>
           </div>
 
@@ -120,6 +122,16 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
             </Popover>
           )}
 
+          {/* Sync Status Badge */}
+          {pendingCount > 0 && (
+            <Badge variant="outline" className={`rounded-full px-3 py-1 flex gap-2 items-center border-none ${failedCount > 0 ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600'}`}>
+              {isSyncing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Cloud className="w-3 h-3" />}
+              <span className="text-[10px] font-bold uppercase tracking-widest">
+                {failedCount > 0 ? `${failedCount} Sync Errors` : `Syncing ${pendingCount}...`}
+              </span>
+            </Badge>
+          )}
+
           <div className="h-8 w-[1px] bg-neutral-200 mx-1 hidden sm:block"></div>
 
           <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-neutral-100 rounded-full h-10">
@@ -136,6 +148,7 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
                 <SelectItem value="registrar">Registrar</SelectItem>
                 <SelectItem value="consultant">Consultant</SelectItem>
                 <SelectItem value="meal_distributor">Meal Distributor</SelectItem>
+                <SelectItem value="visitor">Visitor</SelectItem>
               </SelectContent>
             </Select>
           </div>

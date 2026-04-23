@@ -14,55 +14,25 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PatientSummary } from '../PatientSummary';
 import { CounsellingForm } from '../CounsellingForm';
+import { usePatients } from '../../hooks/usePatients';
+import { WifiOff } from 'lucide-react';
+import { Pagination } from '../shared/Pagination';
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const { patients, loading, isOffline } = usePatients({ realtime: true });
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const lang = profile?.preferredLanguage || 'hi';
+  const lang = profile?.preferred_language || 'hi';
   const t = TRANSLATIONS[lang];
-  const [stats, setStats] = useState({
-    total: 0,
-    pending: 0,
-    completed: 0
-  });
+  
+  const stats = {
+    total: patients.length,
+    pending: patients.filter(p => p.status !== 'complete').length,
+    completed: patients.filter(p => p.status === 'complete').length
+  };
 
-  useEffect(() => {
-    const fetchPatients = async () => {
-      const { data, error } = await supabase
-        .from('patients')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(200);
-
-      if (error) {
-        console.error("Error fetching patients:", error);
-      } else {
-        const patientsData = data as Patient[];
-        setPatients(patientsData);
-
-        const total = patientsData.length;
-        const completed = patientsData.filter(p => p.status === 'complete').length;
-        const pending = total - completed;
-        setStats({ total, pending, completed });
-      }
-    };
-
-    fetchPatients();
-
-    const channel = supabase
-      .channel('admin-patients')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'patients' }, () => {
-        fetchPatients();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -87,9 +57,15 @@ export default function AdminDashboard() {
           <p className="text-neutral-500">Madhya Pradesh Patient Management Oversight • Live Data Feed</p>
         </div>
         <div className="flex gap-2">
-          <Badge variant="outline" className="rounded-full px-4 py-1.5 border-neutral-200 bg-white shadow-sm flex gap-2 items-center">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            Live Analytics
+          {isOffline && (
+            <Badge variant="outline" className="rounded-full px-4 py-1.5 border-rose-200 bg-rose-50 text-rose-600 shadow-sm flex gap-2 items-center font-bold">
+              <WifiOff className="w-3.5 h-3.5" />
+              OFFLINE MODE (Cached Data)
+            </Badge>
+          )}
+          <Badge variant="outline" className="rounded-full px-4 py-1.5 border-neutral-200 bg-white shadow-sm flex gap-2 items-center font-bold">
+            <div className={`w-2 h-2 rounded-full ${isOffline ? 'bg-amber-400' : 'bg-green-500 animate-pulse'}`} />
+            {isOffline ? 'Sync Paused' : 'Live Analytics'}
           </Badge>
         </div>
       </div>
@@ -187,47 +163,14 @@ export default function AdminDashboard() {
             </TableBody>
           </Table>
 
-          <div className="p-4 border-t border-neutral-100 bg-neutral-50/30 flex items-center justify-between">
-            <p className="text-sm text-neutral-500">
-              Showing <span className="font-medium">{Math.min(startIndex + 1, patients.length)}</span> to <span className="font-medium">{Math.min(startIndex + itemsPerPage, patients.length)}</span> of <span className="font-medium">{patients.length}</span> patients
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="rounded-lg"
-              >
-                Previous
-              </Button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setCurrentPage(page)}
-                    className="w-8 h-8 p-0 rounded-lg"
-                  >
-                    {page}
-                  </Button>
-                )).filter((_, i) => {
-                  if (totalPages <= 5) return true;
-                  return Math.abs(i + 1 - currentPage) < 2 || i === 0 || i === totalPages - 1;
-                })}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages || totalPages === 0}
-                className="rounded-lg"
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={patients.length}
+            itemsPerPage={itemsPerPage}
+            className="px-6 border-t border-neutral-100 bg-neutral-50/30"
+          />
 
           {patients.length === 0 && (
             <div className="p-20 text-center text-neutral-400">

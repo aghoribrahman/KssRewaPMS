@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ImageUpload } from '../ImageUpload';
 import { toast } from 'sonner';
 import { TRANSLATIONS } from '../../constants/mp_data';
-import { Utensils, CheckCircle2, Clock, MapPin, User, ShieldCheck } from 'lucide-react';
+import { Utensils, CheckCircle2, Clock, MapPin, User, ShieldCheck, WifiOff } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,7 +21,8 @@ import { usePatients } from '../../hooks/usePatients';
 
 export default function MealDistributorDashboard() {
   const { user, profile } = useAuth();
-  const { patients, loading } = usePatients({ status: 'pending_meal', realtime: true });
+  const { patients, loading, isOffline, isSyncing, pendingCount } = usePatients({ status: 'pending_meal', realtime: true });
+  const addToSyncQueue = useStore(state => state.addToSyncQueue);
   const [visibleCount, setVisibleCount] = useState(6);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [formData, setFormData] = useState<Partial<Patient>>({});
@@ -43,28 +44,25 @@ export default function MealDistributorDashboard() {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('patients')
-        .update({
-          status: 'complete',
-          meal_image_url: imageUrl || null,
-          meal_distributor_notes: formData.meal_distributor_notes || '',
-          meal_distributor_id: user?.id,
+      addToSyncQueue('UPDATE', {
+        status: 'complete',
+        meal_image_url: imageUrl || null,
+        meal_distributor_notes: formData.meal_distributor_notes || '',
+        meal_distributor_id: user?.id,
+        meal_served_at: new Date().toISOString(),
+      }, selectedPatient.id);
 
-          meal_served_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', selectedPatient.id);
-
-      if (error) throw error;
-
-      toast.success(lang === 'en' ? "Meal delivered!" : "भोजन वितरित!");
+      toast.success(lang === 'en' ? "Delivery queued!" : "वितरण कतार में!");
       setSelectedPatient(null);
       setImageUrl('');
       setFormData({});
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Failed to confirm delivery");
+      if (error.code === '404') {
+        toast.error("Race condition! This record was updated by another staff member. Please refresh.");
+      } else {
+        toast.error("Failed to confirm delivery. Check connection.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -77,15 +75,26 @@ export default function MealDistributorDashboard() {
           <h2 className="text-3xl font-bold text-neutral-900 tracking-tight">
             {TRANSLATIONS.en.mealDistribution} / {TRANSLATIONS.hi.mealDistribution}
           </h2>
-          <p className="text-neutral-500">Service delivery for MP Healthcare System patients.</p>
+          <p className="text-neutral-500">Service delivery for Kiran Seva Sansthan patients.</p>
+          {isSyncing && (
+            <Badge variant="outline" className="rounded-full px-3 py-1 bg-blue-50 text-blue-600 animate-pulse border-blue-100 flex gap-2 items-center mt-2 w-fit">
+              <Utensils className="w-3 h-3" />
+              Syncing {pendingCount} records...
+            </Badge>
+          )}
         </div>
+        {isOffline && (
+          <Badge variant="outline" className="rounded-full px-4 py-1.5 border-rose-200 bg-rose-50 text-rose-600 shadow-sm flex gap-2 items-center font-bold">
+            <WifiOff className="w-4 h-4" />
+            OFFLINE MODE (Cached)
+          </Badge>
+        )}
         {profile?.role !== 'admin' && profile?.assigned_districts && (
           <div className="flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-xl border border-primary/10">
             <ShieldCheck className="w-4 h-4" />
             <span className="text-xs font-bold uppercase tracking-tight">Assigned Districts: {profile.assigned_districts.join(', ')}</span>
           </div>
         )}
-
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { Patient, PatientStatus } from '../types';
+import { PatientStatus } from '../types';
 import { useAuth } from './useAuth';
+import { useStore, useUnifiedPatients, useSyncStatus } from '../store/useStore';
 
 interface UsePatientsOptions {
   status?: PatientStatus;
@@ -11,47 +12,19 @@ interface UsePatientsOptions {
 
 export function usePatients(options: UsePatientsOptions = {}) {
   const { profile } = useAuth();
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const loading = useStore(state => state.loading);
+  const fetchPatients = useStore(state => state.fetchPatients);
+  const unifiedPatients = useUnifiedPatients();
+  const { isSyncing, pendingCount } = useSyncStatus();
 
-  const fetchPatients = useCallback(async () => {
-    if (!profile) return;
-
-    try {
-      setLoading(true);
-      let query = supabase
-        .from('patients')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (options.status) {
-        query = query.eq('status', options.status);
-      }
-
-      if (profile.role !== 'admin' && profile.assigned_districts && profile.assigned_districts.length > 0) {
-        query = query.in('district', profile.assigned_districts);
-      }
-
-      if (options.limit) {
-        query = query.limit(options.limit);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setPatients(data as Patient[]);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching patients:', err);
-      setError(err as Error);
-    } finally {
-      setLoading(false);
-    }
-  }, [profile, options.status, options.limit, profile?.assigned_districts]);
+  const refresh = useCallback(() => {
+    fetchPatients(profile?.assigned_districts);
+  }, [fetchPatients, profile?.assigned_districts]);
 
   useEffect(() => {
-    fetchPatients();
+    if (profile) {
+      refresh();
+    }
 
     if (options.realtime) {
       const channel = supabase
@@ -60,7 +33,7 @@ export function usePatients(options: UsePatientsOptions = {}) {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'patients' },
           () => {
-            fetchPatients();
+            refresh();
           }
         )
         .subscribe();
@@ -69,12 +42,23 @@ export function usePatients(options: UsePatientsOptions = {}) {
         supabase.removeChannel(channel);
       };
     }
-  }, [fetchPatients, options.realtime]);
+  }, [refresh, options.realtime, !!profile]);
+
+  // Apply local filtering for status and limit
+  let filtered = unifiedPatients;
+  if (options.status) {
+    filtered = filtered.filter(p => p.status === options.status);
+  }
+  if (options.limit) {
+    filtered = filtered.slice(0, options.limit);
+  }
 
   return {
-    patients,
+    patients: filtered,
     loading,
-    error,
-    refresh: fetchPatients,
+    refresh,
+    isSyncing,
+    pendingCount,
+    isOffline: !navigator.onLine,
   };
 }

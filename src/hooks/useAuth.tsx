@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { UserProfile, UserRole } from '../types';
+import { useStore } from '../store/useStore';
 
 interface AuthContextType {
   user: User | null;
@@ -21,8 +22,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const setStoreProfile = useStore(state => state.setProfile);
+  const profile = useStore(state => state.profile);
   const [profileLoading, setProfileLoading] = useState(false);
   const lastFetchedUid = React.useRef<string | null>(null);
 
@@ -65,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // 2. Manage Profile State (reacts to user changes)
   useEffect(() => {
     if (!user) {
-      setProfile(null);
+      setStoreProfile(null);
       setProfileLoading(false);
       lastFetchedUid.current = null;
       return;
@@ -88,10 +90,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error && error.code !== 'PGRST116') throw error;
         
         console.log("Profile fetched:", data?.role || "no role");
-        setProfile((data as UserProfile) ?? null);
+        setStoreProfile((data as UserProfile) ?? null);
       } catch (err) {
         console.error("Profile fetch error:", err);
-        setProfile(null);
+        setStoreProfile(null);
       } finally {
         setProfileLoading(false);
       }
@@ -121,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', user.id);
       
       if (error) throw error;
-      setProfile({ ...profile, role });
+      setStoreProfile({ ...profile, role });
     }
   };
 
@@ -133,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', user.id);
       
       if (error) throw error;
-      setProfile({ ...profile, assigned_districts: districts });
+      setStoreProfile({ ...profile, assigned_districts: districts });
     }
   };
 
@@ -145,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', user.id);
       
       if (error) throw error;
-      setProfile({ ...profile, preferred_language: preferredLanguage });
+      setStoreProfile({ ...profile, preferred_language: preferredLanguage });
     }
   };
 
