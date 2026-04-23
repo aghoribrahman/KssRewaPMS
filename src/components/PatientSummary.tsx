@@ -15,7 +15,8 @@ import {
   MapPin,
   ClipboardCheck,
   AlertCircle,
-  Utensils
+  Utensils,
+  UserCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -184,6 +185,42 @@ export function PatientSummary({ patient, className }: PatientSummaryProps) {
           <ClipboardCheck className="w-3 h-3" />
           Feedback Confirm: {patient.feedback_confirmation ? 'Yes' : 'No'}
         </Badge>
+      </div>
+
+      {/* Clinical Chain of Custody */}
+      <div className="mt-8 pt-6 border-t border-neutral-100">
+        <h3 className="text-xs font-black text-neutral-400 uppercase tracking-[0.2em] mb-4">Clinical Chain of Custody</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+              <UserCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Registrar</p>
+              <p className="text-sm font-bold text-neutral-800">{patient.registrar_name || 'Anonymous'}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+              <Stethoscope className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Consultant</p>
+              <p className="text-sm font-bold text-neutral-800">{patient.consultant_name || 'Pending...'}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <Utensils className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Meal Server</p>
+              <p className="text-sm font-bold text-neutral-800">{patient.meal_distributor_name || (patient.meal_required ? 'Pending...' : 'N/A')}</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

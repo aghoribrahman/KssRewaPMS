@@ -57,6 +57,7 @@ export default function ConsultantDashboard() {
         ...formData,
         status: nextStatus,
         consultant_id: user?.id,
+        consultant_name: profile?.display_name,
       }, selectedPatient.id);
 
       const successMsg = nextStatus === 'pending_meal' 

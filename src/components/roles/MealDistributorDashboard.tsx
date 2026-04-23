@@ -18,6 +18,7 @@ import { PatientSummary } from '../PatientSummary';
 import { CounsellingForm } from '../CounsellingForm';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePatients } from '../../hooks/usePatients';
+import { useStore } from '../../store/useStore';
 
 export default function MealDistributorDashboard() {
   const { user, profile } = useAuth();
@@ -49,6 +50,7 @@ export default function MealDistributorDashboard() {
         meal_image_url: imageUrl || null,
         meal_distributor_notes: formData.meal_distributor_notes || '',
         meal_distributor_id: user?.id,
+        meal_distributor_name: profile?.display_name,
         meal_served_at: new Date().toISOString(),
       }, selectedPatient.id);
 

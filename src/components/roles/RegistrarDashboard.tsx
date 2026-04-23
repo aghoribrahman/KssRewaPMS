@@ -113,6 +113,7 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
         ...formData,
         status: 'pending_consultation',
         registrar_id: user?.id,
+        registrar_name: profile?.display_name,
       });
 
       toast.success(lang === 'en' ? "Registration queued!" : "पंजीकरण कतार में!");

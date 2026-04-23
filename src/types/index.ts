@@ -81,15 +81,19 @@ export interface Patient {
   registrar_notes?: string;
   registrar_image_url?: string;
   registrar_id?: string;
+  registrar_name?: string;
   
   consultant_advice?: string;
   consultant_image_url?: string;
   consultant_id?: string;
+  consultant_name?: string;
   
   meal_distributor_notes?: string;
   meal_image_url?: string;
   meal_distributor_id?: string;
+  meal_distributor_name?: string;
   meal_served_at?: string;
+  last_transaction_id?: string;
 
   created_at: string;
   updated_at: string;

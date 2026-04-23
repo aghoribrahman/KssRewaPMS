@@ -120,12 +120,17 @@ export const useStore = create<AppState>()(
             const { error: err } = await supabase.from('patients').insert([{
               ...nextItem.data,
               created_at: nextItem.timestamp,
-              updated_at: nextDate().toISOString(),
+              updated_at: new Date().toISOString(),
+              last_transaction_id: nextItem.id, // ID of the sync transaction
             }]);
             error = err;
           } else {
             const { error: err } = await supabase.from('patients')
-              .update({ ...nextItem.data, updated_at: new Date().toISOString() })
+              .update({ 
+                ...nextItem.data, 
+                updated_at: new Date().toISOString(),
+                last_transaction_id: nextItem.id 
+              })
               .eq('id', nextItem.patientId);
             error = err;
           }
