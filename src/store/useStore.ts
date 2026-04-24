@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
-import { Patient, Profile } from '../types';
+import { Patient, UserProfile } from '../types';
 import { supabase } from '../lib/supabase';
 
 // Custom IndexedDB storage for Zustand to bypass 5MB localStorage limit
@@ -24,8 +24,8 @@ interface SyncItem {
 
 interface AppState {
   // Auth Slice
-  profile: Profile | null;
-  setProfile: (profile: Profile | null) => void;
+  profile: UserProfile | null;
+  setProfile: (profile: UserProfile | null) => void;
 
   // Patient Slice
   patients: Patient[];

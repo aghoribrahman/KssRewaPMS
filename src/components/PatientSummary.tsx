@@ -167,7 +167,7 @@ export function PatientSummary({ patient, className }: PatientSummaryProps) {
 
       {/* Kit & Feedback */}
       <div className="flex flex-wrap gap-4">
-        <Badge variant={patient.nutrition_kit_distributed ? "success" : "destructive"} className="gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none">
+        <Badge variant={patient.nutrition_kit_distributed ? "outline" : "destructive"} className="gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none">
           <Package className="w-3 h-3" />
           Kit: {patient.nutrition_kit_distributed ? `Delivered (${patient.nutrition_kit_date})` : 'Pending'}
         </Badge>
