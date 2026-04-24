@@ -12,9 +12,12 @@ import { PatientSummary } from '../PatientSummary';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
 import { usePatients } from '../../hooks/usePatients';
+import { useAuth } from '../../hooks/useAuth';
 import { Pagination } from '../shared/Pagination';
+import { MapPin } from 'lucide-react';
 
 export default function VisitorDashboard() {
+  const { profile } = useAuth();
   const { patients, loading } = usePatients({ realtime: true });
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,9 +47,17 @@ export default function VisitorDashboard() {
 
   return (
     <div className="space-y-8 pb-12">
-      <header className="flex flex-col gap-2">
-        <h2 className="text-3xl font-bold text-neutral-900 tracking-tight">System Observer Dashboard</h2>
-        <p className="text-neutral-500">Read-only access to real-time patient metrics and directory.</p>
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-3xl font-bold text-neutral-900 tracking-tight">System Observer Dashboard</h2>
+          <p className="text-neutral-500">Read-only access to real-time patient metrics and directory.</p>
+        </div>
+        {profile?.assigned_districts && profile.assigned_districts.length > 0 && (
+          <div className="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-xl border border-blue-100 self-start md:self-center">
+            <MapPin className="w-4 h-4" />
+            <span className="text-xs font-bold uppercase tracking-tight">Scope: {profile.assigned_districts.join(', ')}</span>
+          </div>
+        )}
       </header>
 
       {/* Quick Stats */}
