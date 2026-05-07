@@ -17,7 +17,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ currentView, onViewChange }: NavbarProps) {
-  const { profile, signOut, updateRole, updateDistricts, updateLanguage } = useAuth();
+  const { profile, signOut, updateDistricts, updateLanguage, setSessionRole, actualRole } = useAuth();
   const { isSyncing, pendingCount, failedCount } = useSyncStatus();
   const [isDistrictOpen, setIsDistrictOpen] = useState(false);
 
@@ -134,24 +134,26 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
 
           <div className="h-8 w-[1px] bg-neutral-200 mx-1 hidden sm:block"></div>
 
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-neutral-100 rounded-full h-10">
-            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider pl-1">Role:</span>
-            <Select 
-              value={profile?.role} 
-              onValueChange={(val) => updateRole(val as UserRole)}
-            >
-              <SelectTrigger className="h-8 border-none bg-transparent shadow-none w-[160px] focus:ring-0 font-bold text-xs uppercase tracking-tight">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="registrar">Registrar</SelectItem>
-                <SelectItem value="consultant">Consultant</SelectItem>
-                <SelectItem value="meal_distributor">Meal Distributor</SelectItem>
-                <SelectItem value="visitor">Visitor</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {actualRole === 'admin' && (
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-neutral-100 rounded-full h-10">
+              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider pl-1">Role:</span>
+              <Select 
+                value={profile?.role} 
+                onValueChange={(val) => setSessionRole(val as UserRole)}
+              >
+                <SelectTrigger className="h-8 border-none bg-transparent shadow-none w-[160px] focus:ring-0 font-bold text-xs uppercase tracking-tight">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="registrar">Registrar</SelectItem>
+                  <SelectItem value="consultant">Consultant</SelectItem>
+                  <SelectItem value="meal_distributor">Meal Distributor</SelectItem>
+                  <SelectItem value="visitor">Visitor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex items-center gap-3">
             <div className="hidden lg:flex flex-col items-end">

@@ -1,276 +1,190 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import * as React from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Patient } from '../../types';
+import { usePatients } from '../../hooks/usePatients';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { ImageUpload } from '../ImageUpload';
 import { toast } from 'sonner';
 import { TRANSLATIONS } from '../../constants/mp_data';
-import { Stethoscope, Clock, FileText, ArrowRight, MapPin, WifiOff } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Stethoscope, ArrowRight, FileText, MapPin } from 'lucide-react';
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PatientSummary } from '../PatientSummary';
-import { CounsellingForm } from '../CounsellingForm';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { usePatients } from '../../hooks/usePatients';
-import { useStore } from '../../store/useStore';
-import { Pagination } from '../shared/Pagination';
+import { DashboardLayout } from '../shared/DashboardLayout';
+import { DashboardHeader } from '../shared/DashboardHeader';
+import { StatGrid } from '../shared/StatGrid';
+import { PatientDirectory } from '../shared/PatientDirectory';
+import { PatientDetailsDialog } from '../shared/PatientDetailsDialog';
+import { useDashboardStats } from '../../hooks/useDashboardStats';
+import { usePatientActions } from '../../hooks/usePatientActions';
+import { Column } from '../shared/GenericTable';
+import { ImageUpload } from '../ImageUpload';
 
 export default function ConsultantDashboard() {
-  const { user, profile } = useAuth();
-  const { patients, loading, isOffline, isSyncing, pendingCount } = usePatients({ status: 'pending_consultation', realtime: true });
-  const addToSyncQueue = useStore(state => state.addToSyncQueue);
+  const { profile } = useAuth();
+  const { patients, isOffline, isSyncing, pendingCount } = usePatients({ status: 'pending_consultation', realtime: true });
+  const { consultPatient } = usePatientActions();
+  
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
-  const [formData, setFormData] = useState<Partial<Patient>>({});
+  const [consultAdvice, setConsultAdvice] = useState('');
+  const [consultImage, setConsultImage] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const lang = profile?.preferred_language || 'hi';
-  const t = TRANSLATIONS[lang];
-
-  const totalPages = Math.ceil(patients.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedPatients = patients.slice(startIndex, startIndex + itemsPerPage);
-
-  useEffect(() => {
+  
+  // Reset review state when patient changes
+  React.useEffect(() => {
     if (selectedPatient) {
-      setFormData({ ...selectedPatient });
+      setConsultAdvice(selectedPatient.consultant_advice || '');
+      setConsultImage(selectedPatient.consultant_image_url || '');
+    } else {
+      setConsultAdvice('');
+      setConsultImage('');
     }
   }, [selectedPatient]);
 
+  const lang = profile?.preferred_language || 'hi';
+  const t = TRANSLATIONS[lang];
+
+  const stats = useDashboardStats({ patients, role: 'consultant', lang });
+
   const handleCompleteReview = async () => {
-    if (!selectedPatient || !formData.consultant_advice) {
+    if (!selectedPatient || !consultAdvice) {
       toast.error("Please provide clinical advice");
       return;
     }
 
-
+    setSubmitting(true);
     try {
-      const nextStatus = formData.meal_required ? 'pending_meal' : 'complete';
-
-      addToSyncQueue('UPDATE', {
-        ...formData,
-        status: nextStatus,
-        consultant_id: user?.id,
-        consultant_name: profile?.display_name,
-      }, selectedPatient.id);
-
-      const successMsg = nextStatus === 'pending_meal' 
-        ? "Review queued. Patient moved to Meal Distribution."
-        : "Review queued. Patient cycle finished.";
-        
-      toast.success(successMsg);
+      consultPatient(selectedPatient, consultAdvice, consultImage);
+      toast.success("Review queued!");
       setSelectedPatient(null);
-      setFormData({});
-    } catch (error: any) {
-      console.error(error);
-      if (error.message === 'CONFLICT_DETECTED' || error.code === '404') {
-        toast.error("Race condition detected! Another staff member updated this patient. Please refresh.");
-      } else {
-        toast.error("Failed to update record. Check connection.");
-      }
+      setConsultAdvice('');
+      setConsultImage('');
+    } catch (error) {
+      toast.error("Failed to update record");
     } finally {
       setSubmitting(false);
     }
   };
 
-  return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+  const columns: Column<Patient>[] = [
+    {
+      header: t.fullName,
+      accessor: (p) => (
         <div>
-          <h2 className="text-3xl font-bold text-neutral-900 tracking-tight">
-            {TRANSLATIONS.en.clinicalReview} / {TRANSLATIONS.hi.clinicalReview}
-          </h2>
-          <p className="text-neutral-500">Madhya Pradesh Regional Health Center • Clinical Oversight</p>
-          {isSyncing && (
-            <Badge variant="outline" className="rounded-full px-3 py-1 bg-blue-50 text-blue-600 animate-pulse border-blue-100 flex gap-2 items-center mt-2 w-fit">
-              <FileText className="w-3 h-3" />
-              Syncing {pendingCount} records...
-            </Badge>
-          )}
+          <p className="font-semibold text-neutral-900">{p.name}</p>
+          <p className="text-xs text-neutral-500">{p.age}y • {p.contact}</p>
         </div>
-        {isOffline && (
-          <Badge variant="outline" className="rounded-full px-4 py-1.5 border-rose-200 bg-rose-50 text-rose-600 shadow-sm flex gap-2 items-center font-bold">
-            <WifiOff className="w-3.5 h-3.5" />
-            OFFLINE MODE (Cached)
-          </Badge>
-        )}
-        {profile?.role !== 'admin' && profile?.assigned_districts && (
-          <div className="flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-xl border border-primary/10">
-            <MapPin className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-tight">Accessing Dist: {profile.assigned_districts.join(', ')}</span>
-          </div>
-        )}
-      </div>
+      )
+    },
+    {
+      header: t.district,
+      accessor: (p) => (
+        <Badge variant="outline" className="rounded-full font-normal">{p.district}</Badge>
+      )
+    },
+    {
+      header: t.timeAdded,
+      accessor: (p) => (
+        <p className="text-xs font-medium text-neutral-400">
+          {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </p>
+      )
+    },
+    {
+      header: t.actions,
+      accessor: (p) => (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="rounded-full gap-2"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedPatient(p);
+          }}
+        >
+          {lang === 'en' ? "Review" : "समीक्षा"} <ArrowRight className="w-3 h-3" />
+        </Button>
+      )
+    }
+  ];
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="rounded-3xl border-none shadow-xl shadow-neutral-200/40">
-            <CardHeader className="p-8 border-b border-neutral-100">
-              <CardTitle className="text-xl flex items-center gap-2">
-                <Clock className="w-5 h-5 text-orange-500" />
-                {t.waitConsultation}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-neutral-50/50">
-                    <TableHead className="py-4 pl-8">{t.fullName}</TableHead>
-                    <TableHead className="py-4">{t.district}</TableHead>
-                    <TableHead className="py-4">{t.timeAdded}</TableHead>
-                    <TableHead className="py-4 pr-8 text-right">{t.actions}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedPatients.map((p) => (
-                    <TableRow key={p.id} className="hover:bg-neutral-50/50 cursor-pointer" onClick={() => setSelectedPatient(p)}>
-                      <TableCell className="py-4 pl-8">
-                        <div>
-                          <p className="font-semibold text-neutral-900">{p.name}</p>
-                          <p className="text-xs text-neutral-500">{p.age}y • {p.contact}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4">
-                        <Badge variant="outline" className="rounded-full font-normal">{p.district}</Badge>
-                      </TableCell>
-                      <TableCell className="py-4">
-                         <p className="text-xs font-medium text-neutral-400">
-                           {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                         </p>
-                      </TableCell>
-                      <TableCell className="py-4 pr-8 text-right">
-                        <Button variant="outline" size="sm" className="rounded-full gap-2">
-                          {lang === 'en' ? "Review" : "समीक्षा"} <ArrowRight className="w-3 h-3" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              <Pagination 
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                totalItems={patients.length}
-                itemsPerPage={itemsPerPage}
-                className="px-6 border-t border-neutral-100 bg-neutral-50/30"
-              />
-
-              {patients.length === 0 && (
-                <div className="p-20 text-center text-neutral-400">
-                  <Stethoscope className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                  <p>All clear! No patients waiting in your assigned districts.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-           <Card className="rounded-3xl border-none shadow-xl shadow-neutral-200/40 bg-primary/5 border border-primary/10">
-              <CardHeader>
-                <CardTitle className="text-lg">Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-white p-4 rounded-2xl">
-                  <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Queue Size</p>
-                  <p className="text-4xl font-bold text-primary">{patients.length}</p>
-                </div>
-              </CardContent>
-           </Card>
-        </div>
-      </div>
-
-      <Dialog open={!!selectedPatient} onOpenChange={() => setSelectedPatient(null)}>
-        <DialogContent className="max-w-[95vw] md:max-w-4xl p-0 overflow-hidden border-none shadow-2xl h-[90vh] flex flex-col gap-0">
-          <div className="flex flex-col flex-1 h-full bg-white overflow-hidden">
-            <div className="bg-neutral-900 text-white p-6 flex shrink-0 flex-row items-center justify-between">
-              <div>
-                <DialogTitle className="text-2xl font-bold">{selectedPatient?.name}</DialogTitle>
-                <p className="text-neutral-400 text-sm">
-                  {lang === 'en' ? "Comprehensive Clinical Review" : "व्यापक नैदानिक समीक्षा"}
-                </p>
-              </div>
-              <Button variant="ghost" className="text-white hover:text-white hover:bg-white/10" onClick={() => setSelectedPatient(null)}>
-                X
-              </Button>
+  return (
+    <DashboardLayout>
+      <DashboardHeader 
+        title={lang === 'en' ? 'Clinical Review' : 'नैदानिक समीक्षा'}
+        subtitle="Madhya Pradesh Regional Health Center • Clinical Oversight"
+        role="Consultant"
+        lang={lang}
+        isOffline={isOffline}
+        isSyncing={isSyncing}
+        pendingCount={pendingCount}
+        icon={Stethoscope}
+        actions={
+          profile?.role !== 'admin' && profile?.assigned_districts && (
+            <div className="flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-xl border border-primary/10">
+              <MapPin className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase tracking-tight">Districts: {profile.assigned_districts.join(', ')}</span>
             </div>
+          )
+        }
+      />
 
-            <div className="flex-1 overflow-y-auto p-6 md:p-8 min-h-0 bg-white">
-              <div className="space-y-8 pb-12">
-                <Tabs defaultValue="summary" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 rounded-xl h-12 mb-8 bg-neutral-100 p-1">
-                    <TabsTrigger value="summary" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                      {lang === 'en' ? "Quick Summary" : "त्वरित सारांश"}
-                    </TabsTrigger>
-                    <TabsTrigger value="form" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                      {lang === 'en' ? "Detailed Form" : "विस्तृत फॉर्म"}
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="summary">
-                    <PatientSummary patient={formData as any} />
-                  </TabsContent>
-                  
-                  <TabsContent value="form">
-                    <CounsellingForm 
-                      data={formData} 
-                      onChange={setFormData}
-                    />
-                  </TabsContent>
-                </Tabs>
-                
-                <div className="space-y-4 pt-8 border-t border-neutral-100">
-                   <h3 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-primary" />
-                    {t.medicalAdvice}
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="advice" className="text-sm font-semibold">{lang === 'en' ? "Final Consultation Notes / Advice" : "अंतिम परामर्श नोट्स / सलाह"}</Label>
-                        <Textarea 
-                          id="advice" 
-                          placeholder={lang === 'en' ? "Enter final advice..." : "अंतिम सलाह दर्ज करें..."} 
-                          className="min-h-[120px] rounded-2xl resize-none focus:ring-primary/20"
-                          value={formData.consultant_advice || ''}
-                          onChange={e => setFormData({...formData, consultant_advice: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-semibold">{lang === 'en' ? "Attach Reports/Photo" : "रिपोर्ट/फोटो संलग्न करें"}</Label>
-                        <ImageUpload 
-                          folder="consultation_reports" 
-                          onUploadComplete={(url) => setFormData({...formData, consultant_image_url: url})}
-                          label={lang === 'en' ? "Upload Report" : "रिपोर्ट अपलोड करें"}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+      <StatGrid stats={stats} />
+
+      <PatientDirectory 
+        patients={patients}
+        columns={columns}
+        onPatientSelect={setSelectedPatient}
+        lang={lang}
+        title={t.waitConsultation}
+        description="Patients awaiting clinical evaluation."
+      />
+
+      <PatientDetailsDialog 
+        patient={selectedPatient}
+        onClose={() => setSelectedPatient(null)}
+        lang={lang}
+        subtitle={lang === 'en' ? "Comprehensive Clinical Review" : "व्यापक नैदानिक समीक्षा"}
+        actionTabTitle={lang === 'en' ? "Clinical Review" : "नैदानिक समीक्षा"}
+        actionContent={
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              {t.medicalAdvice}
+            </h3>
+            <div className="grid grid-cols-1 gap-6">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">{lang === 'en' ? "Final Consultation Notes" : "अंतिम परामर्श नोट्स"}</Label>
+                <Textarea 
+                  placeholder="Enter advice..." 
+                  className="min-h-[150px] rounded-2xl resize-none shadow-sm"
+                  value={consultAdvice}
+                  onChange={e => setConsultAdvice(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Attach Reports</Label>
+                <ImageUpload 
+                  folder="consultation_reports" 
+                  onUploadComplete={setConsultImage}
+                  label="Upload Report"
+                />
               </div>
             </div>
-
-            <div className="p-6 border-t border-neutral-100 flex shrink-0 flex-col sm:flex-row gap-3 bg-neutral-50 px-8">
-              <Button variant="outline" className="flex-1 rounded-xl h-12 order-2 sm:order-1 font-semibold" onClick={() => setSelectedPatient(null)}>
-                {lang === 'en' ? "Cancel" : "रद्द करें"}
-              </Button>
-              <Button className="flex-[2] rounded-xl h-12 order-1 sm:order-2 font-bold shadow-lg shadow-primary/20 bg-neutral-900 hover:bg-neutral-800 text-white" onClick={handleCompleteReview} disabled={submitting}>
-                {submitting ? (lang === 'en' ? "Processing..." : "प्रक्रिया जारी...") : t.completeReview}
-              </Button>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        }
+        actions={
+          <>
+            <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => setSelectedPatient(null)}>
+              {lang === 'en' ? "Cancel" : "रद्द करें"}
+            </Button>
+            <Button className="flex-[2] rounded-xl h-12 font-bold shadow-lg" onClick={handleCompleteReview} disabled={submitting}>
+              {submitting ? "Processing..." : t.completeReview}
+            </Button>
+          </>
+        }
+      />
+    </DashboardLayout>
   );
 }
-

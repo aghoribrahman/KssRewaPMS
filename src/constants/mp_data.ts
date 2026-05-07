@@ -33,7 +33,26 @@ export const TRANSLATIONS = {
     completeReview: "Complete & Send to Meal",
     confirmDelivery: "Confirm Delivery",
     systemOversight: "System Oversight",
-    patientData: "Patient Data Log"
+    patientData: "Patient Data Log",
+    gender: "Gender",
+    address: "Address",
+    block: "Block",
+    village: "Village",
+    abhaId: "ABHA ID / Aadhar",
+    sickleCellStatus: "Sickle Cell Status",
+    medicalHistory: "Medical History",
+    presentSymptoms: "Present Symptoms",
+    currentMedication: "Current Medication",
+    dietLifestyle: "Diet & Lifestyle",
+    counsellingTopics: "Counselling Topics",
+    nutritionKit: "Nutrition Kit Distribution",
+    referral: "Referral",
+    feedback: "Feedback & Understanding",
+    counsellorDetails: "Counsellor Details",
+    basicInfo: "Basic Information",
+    locationDetails: "Location Details",
+    submit: "Submit",
+    cancel: "Cancel"
   },
   hi: {
     dashboard: "डैशबोर्ड",
@@ -57,7 +76,7 @@ export const TRANSLATIONS = {
     medicalAdvice: "चिकित्सा सलाह",
     completeReview: "समीक्षा पूरी करें और भोजन के लिए भेजें",
     confirmDelivery: "वितरण की पुष्टि करें",
-    systemOversight: "सिस्टम निरीक्षण",
+    systemOversight: "प्रणाली निरीक्षण",
     patientData: "मरीज डेटा लॉग",
     gender: "लिंग",
     address: "पता",
@@ -73,6 +92,10 @@ export const TRANSLATIONS = {
     nutritionKit: "पोषण किट वितरण",
     referral: "रेफरल",
     feedback: "प्रतिक्रिया और समझ",
-    counsellorDetails: "परामर्शदाता विवरण"
+    counsellorDetails: "परामर्शदाता विवरण",
+    basicInfo: "बुनियादी जानकारी",
+    locationDetails: "स्थान विवरण",
+    submit: "सबमिट करें",
+    cancel: "रद्द करें"
   }
 };

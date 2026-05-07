@@ -31,7 +31,7 @@ export function usePatients(options: UsePatientsOptions = {}) {
         .channel('patients-sync')
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'patients' },
+          { event: '*', schema: 'public', table: 'patient_visits' },
           () => {
             refresh();
           }

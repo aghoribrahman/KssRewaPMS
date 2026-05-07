@@ -1,0 +1,45 @@
+import { useStore } from '../store/useStore';
+import { useAuth } from './useAuth';
+import { Patient } from '../types';
+
+export function usePatientActions() {
+  const addToSyncQueue = useStore(state => state.addToSyncQueue);
+  const { user, profile } = useAuth();
+
+  const registerPatient = (data: Partial<Patient>) => {
+    addToSyncQueue('INSERT', {
+      ...data,
+      registrar_id: user?.id || null,
+      registrar_name: profile?.display_name || null,
+    });
+  };
+
+  const consultPatient = (patient: Patient, advice: string, imageUrl?: string) => {
+    const nextStatus = patient.meal_required ? 'pending_meal' : 'complete';
+    
+    // Create a clean data object without joining fields
+    const { patient_master, ...cleanPatient } = patient as any;
+
+    addToSyncQueue('UPDATE', {
+      ...cleanPatient,
+      consultant_advice: advice,
+      consultant_image_url: imageUrl || null,
+      status: nextStatus,
+      consultant_id: user?.id || null,
+      consultant_name: profile?.display_name || null,
+    }, patient.id);
+  };
+
+  const serveMeal = (patient: Patient, notes: string, imageUrl?: string) => {
+    addToSyncQueue('UPDATE', {
+      status: 'complete',
+      meal_image_url: imageUrl || null,
+      meal_distributor_notes: notes || '',
+      meal_distributor_id: user?.id || null,
+      meal_distributor_name: profile?.display_name || null,
+      meal_served_at: new Date().toISOString(),
+    }, patient.id);
+  };
+
+  return { registerPatient, consultPatient, serveMeal };
+}

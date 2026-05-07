@@ -23,6 +23,7 @@ export interface Patient {
   district: string;
   block: string;
   village: string;
+  master_patient_id?: string;
   abha_id?: string;
   aadhar_number?: string;
   

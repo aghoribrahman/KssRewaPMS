@@ -4,6 +4,8 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { UserProfile, UserRole } from '../types';
 import { useStore } from '../store/useStore';
+import { toast } from 'sonner';
+
 
 interface AuthContextType {
   user: User | null;
@@ -15,6 +17,8 @@ interface AuthContextType {
   updateRole: (role: UserRole) => Promise<void>;
   updateDistricts: (districts: string[]) => Promise<void>;
   updateLanguage: (lang: 'en' | 'hi') => Promise<void>;
+  setSessionRole: (role: UserRole | null) => void;
+  actualRole: UserRole | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,9 +28,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const setStoreProfile = useStore(state => state.setProfile);
-  const profile = useStore(state => state.profile);
+  const storeProfile = useStore(state => state.profile);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [sessionRole, setSessionRole] = useState<UserRole | null>(null);
   const lastFetchedUid = React.useRef<string | null>(null);
+
+  // Masked profile for UI impersonation
+  const profile = React.useMemo(() => {
+    if (!storeProfile) return null;
+    return {
+      ...storeProfile,
+      role: sessionRole || storeProfile.role
+    };
+  }, [storeProfile, sessionRole]);
+
 
   // 1. Manage Auth State
   useEffect(() => {
@@ -69,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) {
       setStoreProfile(null);
       setProfileLoading(false);
+      setSessionRole(null); // Reset impersonation on logout
       lastFetchedUid.current = null;
       return;
     }
@@ -128,26 +144,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateDistricts = async (districts: string[]) => {
-    if (user && profile) {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ assigned_districts: districts })
-        .eq('id', user.id);
-      
-      if (error) throw error;
-      setStoreProfile({ ...profile, assigned_districts: districts });
+    if (user && storeProfile) {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ assigned_districts: districts })
+          .eq('id', user.id);
+        
+        if (error) throw error;
+        setStoreProfile({ ...storeProfile, assigned_districts: districts });
+        toast.success(storeProfile.preferred_language === 'en' ? "Districts updated" : "ज़िले अपडेट किए गए");
+      } catch (error) {
+        console.error("District update error:", error);
+        toast.error("Failed to update districts");
+      }
     }
   };
 
+
   const updateLanguage = async (preferredLanguage: 'en' | 'hi') => {
-    if (user && profile) {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ preferred_language: preferredLanguage })
-        .eq('id', user.id);
-      
-      if (error) throw error;
-      setStoreProfile({ ...profile, preferred_language: preferredLanguage });
+    if (user && storeProfile) {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ preferred_language: preferredLanguage })
+          .eq('id', user.id);
+        
+        if (error) throw error;
+        setStoreProfile({ ...storeProfile, preferred_language: preferredLanguage });
+        toast.success(preferredLanguage === 'en' ? "Language: English" : "भाषा: हिंदी");
+      } catch (error) {
+        console.error("Language update error:", error);
+        toast.error("Failed to update language");
+      }
     }
   };
 
@@ -161,7 +190,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut, 
       updateRole, 
       updateDistricts, 
-      updateLanguage 
+      updateLanguage,
+      setSessionRole: (role: UserRole | null) => {
+        if (storeProfile?.role === 'admin' || !role) {
+          setSessionRole(role);
+        }
+      },
+      actualRole: storeProfile?.role || null
     }}>
       {children}
     </AuthContext.Provider>

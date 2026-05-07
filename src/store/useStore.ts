@@ -61,7 +61,7 @@ export const useStore = create<AppState>()(
       pendingSync: [],
       addToSyncQueue: (type, data, patientId) => {
         const newItem: SyncItem = {
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           patientId,
           type,
           data,
@@ -93,13 +93,42 @@ export const useStore = create<AppState>()(
       fetchPatients: async (districtFilter) => {
         set({ loading: true });
         try {
-          let query = supabase.from('patients').select('*').order('updated_at', { ascending: false });
-          if (districtFilter && districtFilter.length > 0) {
-            query = query.in('district', districtFilter);
-          }
+          // Query the new visits table and join with master
+          let query = supabase.from('patient_visits').select('*, patient_master(*)').order('created_at', { ascending: false });
+          
+          // Note: District is now on patient_master, so we need to filter on the joined table
+          // In Supabase, filtering joined tables requires inner join syntax if filtering out parents
+          // For simplicity in offline mode, we'll fetch all and filter in memory if district filter is present
           const { data, error } = await query;
           if (error) throw error;
-          set({ patients: data as Patient[], loading: false });
+          
+          // Flatten the data to match the legacy 'Patient' interface for the UI components
+          let flattenedData = (data as any[]).map(v => ({
+            ...v,
+            ...v.patient_master,
+            id: v.id, // Keep the visit ID as the primary ID for the UI
+            master_patient_id: v.patient_master.id,
+            district: v.patient_master.district,
+            name: v.patient_master.name,
+            contact: v.patient_master.contact,
+            age: v.patient_master.age,
+            gender: v.patient_master.gender,
+            address: v.patient_master.address,
+            block: v.patient_master.block,
+            village: v.patient_master.village,
+            abha_id: v.patient_master.abha_id,
+            aadhar_number: v.patient_master.aadhar_number,
+            sickle_cell_status: v.patient_master.sickle_cell_status,
+            pre_existing_diagnosis: v.patient_master.pre_existing_diagnosis,
+            date_of_diagnosis: v.patient_master.date_of_diagnosis
+          }));
+
+          // Apply district filter in memory since joining with filter is complex in simple JS
+          if (districtFilter && districtFilter.length > 0) {
+            flattenedData = flattenedData.filter(p => districtFilter.includes(p.district));
+          }
+
+          set({ patients: flattenedData as Patient[], loading: false });
         } catch (err) {
           console.error('Fetch failed:', err);
           set({ loading: false });
@@ -108,41 +137,77 @@ export const useStore = create<AppState>()(
 
       processSyncQueue: async () => {
         const { pendingSync, updateSyncStatus, removeFromSync } = get();
+        
+        // Basic check before entering loop
+        if (!navigator.onLine) return;
+
+        // Process one item at a time to maintain order and prevent race conditions
         const nextItem = pendingSync.find(i => i.status === 'PENDING' || (i.status === 'FAILED' && i.retryCount < 3));
         
-        if (!nextItem || !navigator.onLine) return;
+        if (!nextItem) return;
 
+        // Immediately mark as SYNCING in the state to prevent double-processing
         updateSyncStatus(nextItem.id, 'SYNCING');
 
         try {
           let error;
+          
           if (nextItem.type === 'INSERT') {
-            const { error: err } = await supabase.from('patients').insert([{
-              ...nextItem.data,
-              created_at: nextItem.timestamp,
-              updated_at: new Date().toISOString(),
-              last_transaction_id: nextItem.id, // ID of the sync transaction
-            }]);
-            error = err;
+            // Use the atomic RPC to register patient and visit in a single transaction
+            const { name, age, gender, contact, address, district, block, village,
+                    abha_id, aadhar_number, sickle_cell_status, pre_existing_diagnosis, 
+                    date_of_diagnosis, master_patient_id, ...visitData } = nextItem.data as any;
+
+            const masterData = { 
+              id: master_patient_id, name, age, gender, contact, address, 
+              district, block, village, abha_id, aadhar_number, 
+              sickle_cell_status, pre_existing_diagnosis, date_of_diagnosis 
+            };
+
+            const { error: rpcErr } = await supabase.rpc('register_patient_visit', {
+              p_master: masterData,
+              p_visit: visitData,
+              p_visit_id: nextItem.id,
+              p_timestamp: nextItem.timestamp
+            });
+            
+            error = rpcErr;
           } else {
-            const { error: err } = await supabase.from('patients')
+            // It's an UPDATE.
+            const { name, age, gender, contact, address, district, block, village,
+                    abha_id, aadhar_number, sickle_cell_status, pre_existing_diagnosis, 
+                    date_of_diagnosis, master_patient_id, patient_master, ...visitData } = nextItem.data as any;
+
+            const { error: updateErr } = await supabase.from('patient_visits')
               .update({ 
-                ...nextItem.data, 
+                ...visitData, 
                 updated_at: new Date().toISOString(),
                 last_transaction_id: nextItem.id 
               })
               .eq('id', nextItem.patientId);
-            error = err;
+              
+            error = updateErr;
           }
 
           if (error) throw error;
           
+          // Apply changes to local cache for smooth transition
+          if (nextItem.type === 'UPDATE') {
+            set((state) => ({
+              patients: state.patients.map(p => 
+                p.id === nextItem.patientId ? { ...p, ...nextItem.data } : p
+              )
+            }));
+          }
+
           removeFromSync(nextItem.id);
-          // Recurse to process next item
-          get().processSyncQueue();
+          
+          // Trigger next item processing
+          setTimeout(() => get().processSyncQueue(), 0);
         } catch (err: any) {
           console.error('Sync failed for item:', nextItem.id, err);
           updateSyncStatus(nextItem.id, 'FAILED', err.message);
+          // Don't loop infinitely on failure
         }
       },
     }),
@@ -169,8 +234,10 @@ export const useUnifiedPatients = () => {
   // 1. Start with the server patients
   let unified = [...patients];
 
-  // 2. Apply pending updates
-  pendingSync.filter(i => i.type === 'UPDATE').forEach(update => {
+  // 2. Apply pending updates (exclude permanently failed ghost updates)
+  pendingSync
+    .filter(i => i.type === 'UPDATE' && !(i.status === 'FAILED' && i.retryCount >= 3))
+    .forEach(update => {
     const idx = unified.findIndex(p => p.id === update.patientId);
     if (idx !== -1) {
       unified[idx] = { ...unified[idx], ...update.data };
@@ -199,6 +266,12 @@ export const useSyncStatus = () => {
   return { isSyncing, pendingCount, failedCount };
 };
 
-function nextDate() {
-    return new Date();
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
