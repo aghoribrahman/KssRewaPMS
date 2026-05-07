@@ -23,3 +23,22 @@ export interface Patient extends PatientMaster, PatientVisit {
   master_patient_id: string; // PatientMaster ID
 }
 
+export interface VisitHistoryItem {
+  id: string;
+  created_at: string;
+  status: PatientStatus;
+  consultant_advice?: string | null;
+  symptoms?: string[] | null;
+  registrar_name?: string | null;
+  consultant_name?: string | null;
+  meal_distributor_name?: string | null;
+  meal_required: boolean;
+  meal_served_at?: string | null;
+  medication_hydroxyurea: boolean;
+  medication_folic_acid: boolean;
+  nutrition_kit_distributed: boolean;
+  consultant_image_url?: string | null;
+  meal_image_url?: string | null;
+  is_offline_pending?: boolean; // For visual sync status
+}
+

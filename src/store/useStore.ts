@@ -174,22 +174,50 @@ export const useStore = create<AppState>()(
             error = rpcErr;
           } else {
             // It's an UPDATE.
-            const { name, age, gender, contact, address, district, block, village,
-                    abha_id, aadhar_number, sickle_cell_status, pre_existing_diagnosis, 
-                    date_of_diagnosis, master_patient_id, patient_master, ...visitData } = nextItem.data as any;
+            // Senior Engineer Fix: Explicitly filter only valid patient_visits columns to prevent 400 Bad Request
+            // from "polluted" flattened objects in the sync queue.
+            const allowedColumns = [
+              'status', 'symptoms', 'other_symptoms', 'consultant_advice', 'consultant_image_url',
+              'consultant_id', 'consultant_name', 'meal_distributor_id', 'meal_distributor_name',
+              'meal_distributor_notes', 'meal_image_url', 'meal_served_at', 'meal_required',
+              'reports_attached', 'registrar_notes', 'registrar_image_url', 'registrar_id',
+              'registrar_name', 'counselling_topics', 'specific_concerns', 'counsellor_name',
+              'counsellor_designation', 'counsellor_organization', 'last_transaction_id',
+              'first_symptom_onset', 'previous_hospitalizations', 'blood_transfusions_count',
+              'other_health_issues', 'medication_hydroxyurea', 'dosage_hydroxyurea',
+              'medication_folic_acid', 'dosage_folic_acid', 'other_medications',
+              'medication_regularity', 'dietary_habit', 'daily_water_intake', 'physical_activity',
+              'referral', 'feedback_confirmation'
+            ];
+
+            const filteredVisitData: any = {};
+            allowedColumns.forEach(col => {
+              if (nextItem.data[col as keyof Patient] !== undefined) {
+                filteredVisitData[col] = nextItem.data[col as keyof Patient];
+              }
+            });
 
             if (!nextItem.patientId) {
               throw new Error('Missing patient ID for update');
             }
 
-            const { error: updateErr } = await supabase.from('patient_visits')
+            const { error: updateErr, status: respStatus } = await supabase.from('patient_visits')
               .update({ 
-                ...visitData, 
+                ...filteredVisitData, 
                 updated_at: new Date().toISOString(),
                 last_transaction_id: nextItem.id 
               })
               .eq('id', nextItem.patientId as string);
               
+            // If the record no longer exists (e.g. after a purge), remove it from sync silently
+            if (respStatus === 204 || respStatus === 200) {
+                // Success
+            } else if (updateErr && updateErr.code === 'PGRST116') {
+                console.warn('Record not found during sync, removing from queue:', nextItem.patientId);
+                removeFromSync(nextItem.id);
+                return;
+            }
+            
             error = updateErr;
           }
 

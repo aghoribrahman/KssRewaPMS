@@ -45,8 +45,15 @@ export default function ConsultantDashboard() {
   const stats = useDashboardStats({ patients, role: 'consultant', lang });
 
   const handleCompleteReview = async () => {
-    if (!selectedPatient || !consultAdvice) {
-      toast.error(lang === 'en' ? "Please provide clinical advice" : "कृपया नैदानिक सलाह प्रदान करें");
+    if (!selectedPatient) return;
+
+    const adviceTrimmed = consultAdvice.trim();
+    if (adviceTrimmed.length < 10) {
+      toast.error(
+        lang === 'en' 
+          ? "Please provide detailed clinical advice (min 10 chars)" 
+          : "कृपया विस्तृत नैदानिक सलाह प्रदान करें (कम से कम 10 वर्ण)"
+      );
       return;
     }
 

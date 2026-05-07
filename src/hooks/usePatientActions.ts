@@ -6,11 +6,17 @@ export function usePatientActions() {
   const addToSyncQueue = useStore(state => state.addToSyncQueue);
   const { user, profile } = useAuth();
 
+  const systemMetadata = {
+    app_version: '2.4.0-enterprise',
+    device_id: typeof window !== 'undefined' ? window.navigator.userAgent : 'server',
+  };
+
   const registerPatient = (data: Partial<Patient>) => {
     addToSyncQueue('INSERT', {
       ...data,
       registrar_id: user?.id || null,
       registrar_name: profile?.display_name || null,
+      ...systemMetadata
     });
   };
 
@@ -27,6 +33,7 @@ export function usePatientActions() {
       status: nextStatus,
       consultant_id: user?.id || null,
       consultant_name: profile?.display_name || null,
+      ...systemMetadata
     }, patient.id);
   };
 
@@ -38,6 +45,7 @@ export function usePatientActions() {
       meal_distributor_id: user?.id || null,
       meal_distributor_name: profile?.display_name || null,
       meal_served_at: new Date().toISOString(),
+      ...systemMetadata
     }, patient.id);
   };
 

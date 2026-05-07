@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Patient } from '../../types';
-import { History } from 'lucide-react';
+import { Patient, VisitHistoryItem } from '../../types';
+import { History, ClipboardCheck, Stethoscope, Utensils, Image as ImageIcon, Cloud, CloudOff } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { usePatientHistory } from '../../hooks/usePatientHistory';
 
@@ -10,74 +10,189 @@ interface VisitHistoryProps {
 
 export function VisitHistory({ patient }: VisitHistoryProps) {
   const { history, loading } = usePatientHistory(patient);
+  const [activeImage, setActiveImage] = React.useState<string | null>(null);
 
   if (loading) {
-    return <div className="text-sm text-neutral-400 mt-8">Loading visit history...</div>;
+    return (
+      <div className="mt-8 space-y-4 animate-pulse">
+        <div className="h-4 w-32 bg-neutral-100 rounded" />
+        <div className="h-24 w-full bg-neutral-50 rounded-2xl" />
+      </div>
+    );
   }
 
-  if (history.length <= 1) {
-    return null; // No previous visits
+  if (history.length === 0) {
+    return null;
   }
 
-  const totalMeals = history.filter(v => v.meal_served_at || v.nutrition_kit_distributed).length;
+  // Calculate total nutrition kits/meals provided across history
+  const totalKits = history.filter(v => v.meal_served_at || v.nutrition_kit_distributed).length;
 
   return (
-    <div className="mt-8 pt-6 border-t border-neutral-100">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h3 className="text-xs font-black text-neutral-400 uppercase tracking-[0.2em] flex items-center gap-2">
-          <History className="w-4 h-4" />
-          Visit History
+    <div className="mt-12 pt-8 border-t border-neutral-100">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <h3 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] flex items-center gap-2">
+          <History className="w-5 h-5" />
+          Visit Timeline
         </h3>
         <div className="flex gap-2">
-          <Badge variant="outline" className="bg-neutral-50 text-neutral-600 border-neutral-200">
+          <Badge variant="outline" className="bg-neutral-50 text-neutral-600 border-neutral-200 rounded-lg px-3 py-1">
             Total Visits: {history.length}
           </Badge>
-          <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200">
-            Total Kits Provided: {totalMeals}
+          <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 rounded-lg px-3 py-1">
+            Kits Provided: {totalKits}
           </Badge>
         </div>
       </div>
       
-      <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-neutral-200 before:to-transparent">
+      <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-neutral-200 before:to-transparent">
         {history.map((visit, index) => {
           const isFirstVisit = index === history.length - 1;
           const visitNumber = history.length - index;
-          const hasMeds = visit.medication_hydroxyurea || visit.medication_folic_acid;
-          const hasKit = visit.meal_served_at || visit.nutrition_kit_distributed;
+          const isPending = visit.is_offline_pending;
           
           return (
             <div key={visit.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-neutral-100 text-neutral-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
-                <span className="text-[10px] font-bold">{visitNumber}</span>
+              {/* Timeline dot with visit number */}
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white shadow-lg ring-1 ring-neutral-100 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-transform group-hover:scale-110 ${isPending ? 'bg-amber-50 text-amber-500' : 'bg-white text-neutral-400'}`}>
+                {isPending ? <Cloud className="w-4 h-4" /> : <span className="text-[10px] font-black tracking-tighter">{visitNumber}</span>}
               </div>
-              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-2xl bg-white border border-neutral-100 shadow-sm transition-all hover:shadow-md">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-neutral-900">{isFirstVisit ? 'First Visit' : `Visit ${visitNumber}`}</span>
-                    <span className="text-[10px] text-neutral-500">{new Date(visit.created_at).toLocaleDateString()}</span>
+
+              {/* Content Card */}
+              <div className={`w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] p-6 rounded-[2rem] bg-white border shadow-sm transition-all hover:shadow-xl hover:border-primary/10 ${isPending ? 'border-amber-100 bg-amber-50/10' : 'border-neutral-100'}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black text-neutral-900 uppercase tracking-widest">{isFirstVisit ? 'Initial Registration' : `Follow-up Visit ${visitNumber}`}</span>
+                    <div className="flex items-center gap-2 mt-1">
+                       <span className="text-[10px] font-bold text-neutral-400">{new Date(visit.created_at).toLocaleDateString(undefined, { dateStyle: 'full' })}</span>
+                       {isPending && (
+                         <Badge variant="outline" className="text-[8px] font-black uppercase text-amber-600 bg-amber-50 border-amber-200 py-0 px-1.5 flex items-center gap-1">
+                           <CloudOff className="w-2.5 h-2.5" /> Pending Sync
+                         </Badge>
+                       )}
+                    </div>
                   </div>
-                  <Badge variant="outline" className="text-[10px] uppercase">{visit.status.replace('_', ' ')}</Badge>
+                  <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-neutral-50 border-neutral-200">
+                    {(visit.status || 'unknown').replace('_', ' ')}
+                  </Badge>
                 </div>
                 
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {hasMeds && <Badge variant="secondary" className="text-[9px] bg-amber-50 text-amber-700 px-1.5 py-0">💊 Meds Rx</Badge>}
-                  {hasKit && <Badge variant="secondary" className="text-[9px] bg-emerald-50 text-emerald-700 px-1.5 py-0">🍲 Kit Delivered</Badge>}
-                </div>
+                <div className="space-y-4">
+                  {/* Consultant Advice Section */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary/60">
+                      <Stethoscope className="w-3 h-3" />
+                      Clinical Advice
+                    </div>
+                    <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100/50">
+                      <p className="text-xs text-neutral-700 leading-relaxed font-medium italic">
+                        {visit.consultant_advice || 'No clinical notes recorded for this visit.'}
+                      </p>
+                      {visit.consultant_image_url && (
+                        <div 
+                          className="mt-3 overflow-hidden rounded-xl border border-neutral-100 group/img cursor-pointer relative"
+                          onClick={() => setActiveImage(visit.consultant_image_url || null)}
+                        >
+                          <img 
+                            src={visit.consultant_image_url} 
+                            alt="Consultation Report" 
+                            className="w-full h-32 object-cover transition-transform group-hover/img:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="text-white text-[10px] font-bold flex items-center gap-2">
+                              <ImageIcon className="w-4 h-4" /> Click to Expand
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-                <p className="text-xs text-neutral-600 line-clamp-2 mb-3">
-                  {visit.consultant_advice || (visit.symptoms?.length ? `Symptoms: ${visit.symptoms.join(', ')}` : 'No notes')}
-                </p>
+                  {/* Meal/Kit Status */}
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${visit.meal_served_at || visit.nutrition_kit_distributed ? 'bg-emerald-50 text-emerald-600' : 'bg-neutral-50 text-neutral-400'}`}>
+                        <Utensils className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black uppercase tracking-widest">Nutrition Kit</span>
+                        <span className="text-[10px] font-bold text-neutral-400">
+                          {visit.meal_served_at || visit.nutrition_kit_distributed ? 'Delivered' : 'Pending/Not Required'}
+                        </span>
+                      </div>
+                    </div>
+                    {visit.meal_image_url && (
+                       <Badge variant="secondary" className="bg-emerald-100/50 text-emerald-700 text-[9px] font-black rounded-lg">
+                         PHOTO CAPTURED
+                       </Badge>
+                    )}
+                  </div>
 
-                <div className="text-[9px] text-neutral-400 font-medium flex flex-wrap gap-x-2 gap-y-1 pt-2 border-t border-neutral-50">
-                  {visit.registrar_name && <span>Reg: {visit.registrar_name}</span>}
-                  {visit.consultant_name && <span>• Dr: {visit.consultant_name}</span>}
-                  {visit.meal_distributor_name && <span>• Meal: {visit.meal_distributor_name}</span>}
+                  {visit.meal_image_url && (
+                    <div 
+                      className="mt-2 overflow-hidden rounded-xl border border-neutral-100 group/meal cursor-pointer relative"
+                      onClick={() => setActiveImage(visit.meal_image_url || null)}
+                    >
+                      <img 
+                        src={visit.meal_image_url} 
+                        alt="Meal Delivery" 
+                        className="w-full h-24 object-cover transition-transform group-hover/meal:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/meal:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-white text-[10px] font-bold">Meal Evidence</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Metadata Footer */}
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 pt-4 border-t border-neutral-50">
+                    {visit.registrar_name && (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-4 h-4 rounded-full bg-neutral-100 flex items-center justify-center text-[8px] font-bold text-neutral-500">R</div>
+                        <span className="text-[9px] font-bold text-neutral-400">{visit.registrar_name}</span>
+                      </div>
+                    )}
+                    {visit.consultant_name && (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center text-[8px] font-bold text-primary">D</div>
+                        <span className="text-[9px] font-bold text-neutral-400">{visit.consultant_name}</span>
+                      </div>
+                    )}
+                    {visit.meal_distributor_name && (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center text-[8px] font-bold text-emerald-600">M</div>
+                        <span className="text-[9px] font-bold text-neutral-400">{visit.meal_distributor_name}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Image Lightbox Overlay */}
+      {activeImage && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in zoom-in duration-300"
+          onClick={() => setActiveImage(null)}
+        >
+          <div className="relative max-w-5xl max-h-[90vh] w-full h-full flex items-center justify-center">
+            <img 
+              src={activeImage} 
+              className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
+              alt="Preview" 
+            />
+            <button 
+              className="absolute top-0 right-0 m-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+              onClick={() => setActiveImage(null)}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

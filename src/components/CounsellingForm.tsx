@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { Patient } from '../types';
 import { Button } from '@/components/ui/button';
-import { MapPin } from 'lucide-react';
+import { MapPin, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '../hooks/useAuth';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,6 +16,7 @@ interface CounsellingFormProps {
   data: Partial<Patient>;
   onSubmit?: (data: PatientFormData) => void;
   onCancel?: () => void;
+  onContactChange?: (contact: string) => void;
   submitLabel?: string;
   cancelLabel?: string;
   readOnly?: boolean;
@@ -24,6 +26,7 @@ export function CounsellingForm({
   data, 
   onSubmit = () => {}, 
   onCancel, 
+  onContactChange,
   submitLabel = 'Confirm Registration',
   cancelLabel = 'Cancel',
   readOnly = false 
@@ -36,17 +39,54 @@ export function CounsellingForm({
     defaultValues: data as PatientFormData,
   });
 
-  const { handleSubmit, reset, formState: { isSubmitting } } = methods;
+  const { handleSubmit, reset, watch, formState: { isSubmitting, errors } } = methods;
+  const contact = watch('contact');
+  const lastContactRef = React.useRef(contact);
 
+  // Notify parent of contact changes for duplicate detection
+  React.useEffect(() => {
+    if (onContactChange && contact !== lastContactRef.current) {
+      onContactChange(contact || '');
+      lastContactRef.current = contact;
+    }
+  }, [contact, onContactChange]);
+
+  // Handle external data updates (e.g. from auto-fill)
   React.useEffect(() => {
     if (data) {
-      reset(data as PatientFormData);
+      const currentValues = methods.getValues();
+      // Only reset if significant data changed from outside (like auto-fill results)
+      // We check name and master_patient_id as they are key indicators of a found record
+      const hasSignificantChange = 
+        data.name !== currentValues.name || 
+        data.master_patient_id !== currentValues.master_patient_id;
+
+      if (hasSignificantChange) {
+        reset(data as PatientFormData);
+      }
     }
+    // We only want to trigger this when the data object changes from the parent
+    // but we use individual fields in dependencies for stability if needed.
+    // However, [data] is correct here as it represents the "new state" from parent.
   }, [data, reset]);
+
+  // Report validation errors to the user
+  const onInvalid = React.useCallback((errors: any) => {
+    console.error('Form Validation Errors:', errors);
+    const errorFields = Object.keys(errors);
+    if (errorFields.length > 0) {
+      toast.error(
+        lang === 'en' 
+          ? `Please check the following fields: ${errorFields.join(', ')}` 
+          : `कृपया इन क्षेत्रों की जांच करें: ${errorFields.join(', ')}`,
+        { icon: <AlertCircle className="w-5 h-5 text-red-500" /> }
+      );
+    }
+  }, [lang]);
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-12 w-full pb-12">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-12 w-full pb-12">
         <IdentitySection 
           lang={lang} 
           readOnly={readOnly} 

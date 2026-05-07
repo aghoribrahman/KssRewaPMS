@@ -161,6 +161,7 @@ export function MedicalSection({ lang, readOnly }: SectionProps) {
                     </RadioGroup>
                    )}
                  />
+                 {errors.previous_hospitalizations && <p className="text-xs text-red-500">{errors.previous_hospitalizations.message}</p>}
               </div>
               <div className="space-y-3">
                 <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Blood Transfusions (approx count)</Label>

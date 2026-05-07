@@ -51,6 +51,16 @@ export default function MealDistributorDashboard() {
 
   const handleDeliver = async () => {
     if (!selectedPatient) return;
+
+    if (!mealNotes.trim()) {
+      toast.error(
+        lang === 'en' 
+          ? "Please add delivery notes (e.g. 'Kit provided')" 
+          : "कृपया वितरण नोट्स जोड़ें (जैसे 'किट प्रदान की गई')"
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       serveMeal(selectedPatient, mealNotes, mealImage);

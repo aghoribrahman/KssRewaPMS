@@ -49,6 +49,7 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
     medication_hydroxyurea: false, medication_folic_acid: false,
     counselling_topics: [], nutrition_kit_distributed: false,
     meal_required: true, referral: [],
+    previous_hospitalizations: false,
   };
 
   const [formData, setFormData] = useState<Partial<Patient>>(initialFormData);
@@ -72,6 +73,7 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
           abha_id: existingPatient.abha_id || '',
           aadhar_number: existingPatient.aadhar_number || '',
           sickle_cell_status: existingPatient.sickle_cell_status,
+          previous_hospitalizations: existingPatient.previous_hospitalizations || false,
           master_patient_id: masterId
         }));
         setAutoFillSuggested(true);
@@ -81,6 +83,10 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
       setAutoFillSuggested(false);
     }
   }, [formData.contact, patients, autoFillSuggested, lang]);
+
+  const handleContactChange = React.useCallback((c: string) => {
+    setFormData(prev => prev.contact === c ? prev : { ...prev, contact: c });
+  }, []);
 
   const handleRegister = (data: PatientFormData) => {
     registerPatient(data);
@@ -152,6 +158,7 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
 
           <CounsellingForm
             data={formData}
+            onContactChange={handleContactChange}
             onSubmit={handleRegister}
             onCancel={() => setIsRegistering(false)}
             submitLabel={t.confirmRegistration}
