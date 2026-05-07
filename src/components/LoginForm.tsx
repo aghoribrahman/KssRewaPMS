@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,25 +5,33 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Activity, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { LoginSchema, LoginFormData } from '../lib/schemas';
 
 export function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(LoginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const onSubmit = async (data: LoginFormData) => {
     try {
-      await signIn(email, password);
+      await signIn(data.email, data.password);
       toast.success('Login successful');
     } catch (error: any) {
       toast.error('Login failed', {
         description: error.message || 'Invalid credentials'
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -40,18 +47,19 @@ export function LoginForm() {
       <h1 className="text-3xl font-bold tracking-tight text-neutral-900 mb-2 text-center">Kiran Seva Sansthan</h1>
       <p className="text-neutral-500 mb-8 text-center">Secure patient tracking for Kiran Seva Sansthan.</p>
       
-      <form onSubmit={handleLogin} className="space-y-4 text-left">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input 
             id="email"
             type="email" 
             placeholder="admin@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="rounded-xl h-12"
+            {...register('email')}
+            className={`rounded-xl h-12 ${errors.email ? 'border-red-500' : ''}`}
           />
+          {errors.email && (
+            <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
@@ -59,19 +67,20 @@ export function LoginForm() {
             id="password"
             type="password"
             placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="rounded-xl h-12"
+            {...register('password')}
+            className={`rounded-xl h-12 ${errors.password ? 'border-red-500' : ''}`}
           />
+          {errors.password && (
+            <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
+          )}
         </div>
         <Button 
           type="submit" 
           size="lg" 
           className="w-full rounded-xl h-12 text-lg font-medium bg-primary hover:bg-primary/90 mt-4"
-          disabled={loading}
+          disabled={isSubmitting}
         >
-          {loading ? (
+          {isSubmitting ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
             'Sign In'

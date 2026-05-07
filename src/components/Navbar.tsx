@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useState } from 'react';
 import { Settings, LayoutDashboard } from 'lucide-react';
 import { buttonVariants } from './ui/button';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface NavbarProps {
   currentView: 'dashboard' | 'settings';
@@ -19,6 +20,7 @@ interface NavbarProps {
 export function Navbar({ currentView, onViewChange }: NavbarProps) {
   const { profile, signOut, updateDistricts, updateLanguage, setSessionRole, actualRole } = useAuth();
   const { isSyncing, pendingCount, failedCount } = useSyncStatus();
+  const { lang, t } = useTranslation();
   const [isDistrictOpen, setIsDistrictOpen] = useState(false);
 
   const toggleDistrict = (district: string) => {
@@ -30,7 +32,7 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
   };
 
   const toggleLanguage = () => {
-    const next = profile?.preferred_language === 'hi' ? 'en' : 'hi';
+    const next = lang === 'hi' ? 'en' : 'hi';
     updateLanguage(next);
   };
 
@@ -61,7 +63,7 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
                 }`}
               >
                 <LayoutDashboard className="w-4 h-4" />
-                DASHBOARD
+                {lang === 'en' ? 'DASHBOARD' : 'डैशबोर्ड'}
               </button>
               <button
                 onClick={() => onViewChange('settings')}
@@ -72,7 +74,7 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
                 }`}
               >
                 <Settings className="w-4 h-4" />
-                SETTINGS
+                {lang === 'en' ? 'SETTINGS' : 'सेटिंग्स'}
               </button>
             </div>
           )}
@@ -86,7 +88,7 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
             className="rounded-full gap-2 text-neutral-600 hover:bg-neutral-100 font-medium px-4 h-10"
           >
             <Languages className="w-4 h-4 text-primary" />
-            <span className="hidden sm:inline">{profile?.preferred_language === 'hi' ? 'English' : 'हिंदी'}</span>
+            <span className="hidden sm:inline">{lang === 'hi' ? 'English' : 'हिंदी'}</span>
           </Button>
 
           {/* District Selector for Non-Admins to test RBAC */}
@@ -94,15 +96,15 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
             <Popover open={isDistrictOpen} onOpenChange={setIsDistrictOpen}>
               <PopoverTrigger className={buttonVariants({ variant: 'outline', size: 'sm', className: "rounded-full gap-2 border-primary/20 text-primary hover:bg-primary/5 h-10 px-4" })}>
                 <MapIcon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">My Districts</span>
+                <span className="hidden sm:inline">{lang === 'en' ? 'My Districts' : 'मेरे जिले'}</span>
                 <Badge variant="secondary" className="ml-1 px-1.5 h-5 min-w-5 justify-center rounded-full bg-primary/10 text-primary border-none text-[10px]">
                   {profile?.assigned_districts?.length || 0}
                 </Badge>
               </PopoverTrigger>
               <PopoverContent className="w-64 p-0 rounded-2xl shadow-2xl border-neutral-100" align="end">
                 <div className="p-4 border-b border-neutral-100 bg-neutral-50 rounded-t-2xl">
-                  <h4 className="font-bold text-sm">Assign Districts</h4>
-                  <p className="text-[10px] text-neutral-500">Only data from these districts will be visible to you.</p>
+                  <h4 className="font-bold text-sm">{lang === 'en' ? 'Assign Districts' : 'जिले सौंपें'}</h4>
+                  <p className="text-[10px] text-neutral-500">{lang === 'en' ? 'Only data from these districts will be visible to you.' : 'केवल इन जिलों का डेटा आपको दिखाई देगा।'}</p>
                 </div>
                 <div className="max-h-[300px] overflow-y-auto p-2">
                   {MADHYA_PRADESH_DISTRICTS.map(district => (
@@ -136,7 +138,7 @@ export function Navbar({ currentView, onViewChange }: NavbarProps) {
 
           {actualRole === 'admin' && (
             <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-neutral-100 rounded-full h-10">
-              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider pl-1">Role:</span>
+              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider pl-1">{lang === 'en' ? 'Role:' : 'भूमिका:'}</span>
               <Select 
                 value={profile?.role} 
                 onValueChange={(val) => setSessionRole(val as UserRole)}

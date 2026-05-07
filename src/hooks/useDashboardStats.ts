@@ -16,7 +16,7 @@ export function useDashboardStats({ patients, role, lang }: UseDashboardStatsOpt
     const today = new Date().toDateString();
     
     const todayRegistrations = patients.filter(p => 
-      new Date(p.created_at).toDateString() === today
+      p.created_at && new Date(p.created_at).toDateString() === today
     ).length;
 
     const pendingConsultations = patients.filter(p => p.status === 'pending_consultation').length;
@@ -43,13 +43,13 @@ export function useDashboardStats({ patients, role, lang }: UseDashboardStatsOpt
       case 'consultant':
         return [
           { label: lang === 'en' ? "Queue Size" : "कतार का आकार", value: pendingConsultations, icon: Activity, color: 'text-primary', bg: 'bg-primary/5' },
-          { label: lang === 'en' ? "Today's Reviews" : "आज की समीक्षाएं", value: patients.filter(p => p.consultant_id && new Date(p.updated_at).toDateString() === today).length, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' }
+          { label: lang === 'en' ? "Today's Reviews" : "आज की समीक्षाएं", value: patients.filter(p => p.consultant_id && p.updated_at && new Date(p.updated_at).toDateString() === today).length, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' }
         ];
 
       case 'meal_distributor':
         return [
           { label: lang === 'en' ? "Pending Meals" : "लंबित भोजन", value: pendingMeals, icon: Activity, color: 'text-orange-600', bg: 'bg-orange-50' },
-          { label: lang === 'en' ? "Today's Served" : "आज परोसा गया", value: patients.filter(p => p.meal_distributor_id && new Date(p.meal_served_at!).toDateString() === today).length, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' }
+          { label: lang === 'en' ? "Today's Served" : "आज परोसा गया", value: patients.filter(p => p.meal_distributor_id && p.meal_served_at && new Date(p.meal_served_at).toDateString() === today).length, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' }
         ];
 
       default:

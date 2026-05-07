@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Patient } from '../../types';
 import { usePatients } from '../../hooks/usePatients';
@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { TRANSLATIONS } from '../../constants/mp_data';
 import { Input } from '@/components/ui/input';
 import { Utensils, CheckCircle2, Clock, MapPin, User, Search } from 'lucide-react';
 
@@ -21,9 +20,13 @@ import { useDashboardStats } from '../../hooks/useDashboardStats';
 import { usePatientActions } from '../../hooks/usePatientActions';
 import { ImageUpload } from '../ImageUpload';
 import { useDashboardState } from '../../hooks/useDashboardState';
+import { useTranslation } from '../../hooks/useTranslation';
+import { formatTime } from '../../lib/dateUtils';
+import { StatusBadge } from '../shared/StatusBadge';
 
 export default function MealDistributorDashboard() {
   const { profile } = useAuth();
+  const { lang, t } = useTranslation();
   const { patients, isOffline, isSyncing, pendingCount } = usePatients({ status: 'pending_meal', realtime: true });
   const { serveMeal } = usePatientActions();
   
@@ -33,7 +36,7 @@ export default function MealDistributorDashboard() {
   const [submitting, setSubmitting] = useState(false);
   
   // Reset review state when patient changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedPatient) {
       setMealNotes(selectedPatient.meal_distributor_notes || '');
       setMealImage(selectedPatient.meal_image_url || '');
@@ -43,9 +46,6 @@ export default function MealDistributorDashboard() {
     }
   }, [selectedPatient]);
 
-  const lang = profile?.preferred_language || 'hi';
-  const t = TRANSLATIONS[lang];
-
   const stats = useDashboardStats({ patients, role: 'meal_distributor', lang });
   const { searchQuery, setSearchQuery, paginatedPatients, totalCount } = useDashboardState({ patients, itemsPerPage: 100 });
 
@@ -54,12 +54,10 @@ export default function MealDistributorDashboard() {
     setSubmitting(true);
     try {
       serveMeal(selectedPatient, mealNotes, mealImage);
-      toast.success("Delivery queued!");
+      toast.success(lang === 'en' ? "Delivery queued!" : "वितरण कतार में!");
       setSelectedPatient(null);
-      setMealNotes('');
-      setMealImage('');
     } catch (error) {
-      toast.error("Failed to confirm delivery");
+      toast.error(lang === 'en' ? "Failed to confirm delivery" : "वितरण की पुष्टि करने में विफल");
     } finally {
       setSubmitting(false);
     }
@@ -112,16 +110,14 @@ export default function MealDistributorDashboard() {
                         {p.district}
                       </p>
                     </div>
-                    <Badge className="bg-primary/10 text-primary shadow-none rounded-full px-3">
-                      {p.status.replace('_', ' ')}
-                    </Badge>
+                    <StatusBadge status={p.status} />
                  </div>
               </CardHeader>
               <CardContent className="p-6 pt-0 space-y-6">
                  <div className="p-4 bg-neutral-50 rounded-2xl space-y-3">
                     <div className="flex items-center gap-2 text-sm">
                       <Clock className="w-4 h-4 text-neutral-400" />
-                      <span className="font-medium text-neutral-600">Added: {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span className="font-medium text-neutral-600">Added: {formatTime(p.created_at)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-neutral-500 italic">
                       <User className="w-4 h-4 text-neutral-400" />
@@ -140,7 +136,9 @@ export default function MealDistributorDashboard() {
         {totalCount === 0 && (
           <div className="p-20 text-center border-2 border-dashed border-neutral-200 rounded-3xl bg-neutral-50/50">
             <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-neutral-200" />
-            <p className="text-neutral-400 font-medium text-lg">No meals pending distribution.</p>
+            <p className="text-neutral-400 font-medium text-lg">
+              {lang === 'en' ? "No meals pending distribution." : "कोई भोजन वितरण लंबित नहीं है।"}
+            </p>
           </div>
         )}
       </div>
@@ -159,9 +157,11 @@ export default function MealDistributorDashboard() {
                 <ImageUpload folder="meal_deliveries" onUploadComplete={setMealImage} label={t.deliveredTray} />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">Notes</Label>
+                <Label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">
+                  {lang === 'en' ? "Notes" : "टिप्पणियाँ"}
+                </Label>
                 <Textarea 
-                  placeholder="Enter delivery notes..."
+                  placeholder={lang === 'en' ? "Enter delivery notes..." : "वितरण नोट्स दर्ज करें..."}
                   className="rounded-2xl min-h-[120px] shadow-sm"
                   value={mealNotes}
                   onChange={e => setMealNotes(e.target.value)}
@@ -173,10 +173,10 @@ export default function MealDistributorDashboard() {
         actions={
           <>
             <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => setSelectedPatient(null)}>
-              Cancel
+              {lang === 'en' ? "Cancel" : "रद्द करें"}
             </Button>
             <Button className="flex-[2] rounded-xl h-12 font-bold" onClick={handleDeliver} disabled={submitting}>
-              {submitting ? "Processing..." : "Confirm Delivery"}
+              {submitting ? "Processing..." : t.confirmDelivery}
             </Button>
           </>
         }

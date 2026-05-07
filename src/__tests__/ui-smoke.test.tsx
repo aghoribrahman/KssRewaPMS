@@ -62,7 +62,7 @@ describe('UI Smoke Tests', () => {
       />
     );
 
-    expect(screen.getByText(/Full Name/i)).toBeDefined();
+    expect(screen.getAllByText(/Full Name/i).length).toBeGreaterThan(0);
   });
 
   it('renders PatientSummary with masking for visitor', () => {

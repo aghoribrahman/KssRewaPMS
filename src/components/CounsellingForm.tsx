@@ -3,7 +3,9 @@ import { Patient } from '../types';
 import { Button } from '@/components/ui/button';
 import { MapPin } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { TRANSLATIONS } from '../constants/mp_data';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { PatientSchema, PatientFormData } from '../lib/schemas';
 
 import { IdentitySection } from './CounsellingForm/sections/IdentitySection';
 import { MedicalSection } from './CounsellingForm/sections/MedicalSection';
@@ -11,8 +13,7 @@ import { SupportSection } from './CounsellingForm/sections/SupportSection';
 
 interface CounsellingFormProps {
   data: Partial<Patient>;
-  onChange: (data: Partial<Patient>) => void;
-  onSubmit?: () => void;
+  onSubmit?: (data: PatientFormData) => void;
   onCancel?: () => void;
   submitLabel?: string;
   cancelLabel?: string;
@@ -21,78 +22,69 @@ interface CounsellingFormProps {
 
 export function CounsellingForm({ 
   data, 
-  onChange, 
-  onSubmit, 
+  onSubmit = () => {}, 
   onCancel, 
   submitLabel = 'Confirm Registration',
   cancelLabel = 'Cancel',
   readOnly = false 
 }: CounsellingFormProps) {
   const { profile } = useAuth();
-  const lang = profile?.preferred_language || 'hi';
+  const lang = (profile?.preferred_language as 'en' | 'hi') || 'hi';
 
-  const handleChange = (field: keyof Patient, value: any) => {
-    if (readOnly) return;
-    onChange({ ...data, [field]: value });
-  };
+  const methods = useForm<PatientFormData>({
+    resolver: zodResolver(PatientSchema),
+    defaultValues: data as PatientFormData,
+  });
 
-  const handleCheckboxChange = (field: 'symptoms' | 'counselling_topics' | 'referral', value: string, checked: boolean) => {
-    if (readOnly) return;
-    const current = (data[field] as string[]) || [];
-    if (checked) {
-      onChange({ ...data, [field]: [...current, value] });
-    } else {
-      onChange({ ...data, [field]: current.filter((item) => item !== value) });
+  const { handleSubmit, reset, formState: { isSubmitting } } = methods;
+
+  React.useEffect(() => {
+    if (data) {
+      reset(data as PatientFormData);
     }
-  };
+  }, [data, reset]);
 
   return (
-    <div className="space-y-12 w-full pb-12">
-      <IdentitySection 
-        data={data} 
-        onChange={handleChange} 
-        lang={lang} 
-        readOnly={readOnly} 
-      />
+    <FormProvider {...methods}>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-12 w-full pb-12">
+        <IdentitySection 
+          lang={lang} 
+          readOnly={readOnly} 
+        />
 
-      <MedicalSection 
-        data={data} 
-        onChange={handleChange} 
-        onCheckboxChange={handleCheckboxChange} 
-        lang={lang} 
-        readOnly={readOnly} 
-      />
+        <MedicalSection 
+          lang={lang} 
+          readOnly={readOnly} 
+        />
 
-      <SupportSection 
-        data={data} 
-        onChange={handleChange} 
-        onCheckboxChange={handleCheckboxChange} 
-        lang={lang} 
-        readOnly={readOnly} 
-      />
+        <SupportSection 
+          lang={lang} 
+          readOnly={readOnly} 
+        />
 
-      {!readOnly && (onSubmit || onCancel) && (
-        <div className="flex justify-end gap-3 pt-12 border-t border-neutral-100">
-          {onCancel && (
+        {!readOnly && (
+          <div className="flex justify-end gap-3 pt-12 border-t border-neutral-100">
+            {onCancel && (
+              <Button 
+                type="button"
+                variant="outline" 
+                onClick={onCancel} 
+                className="rounded-xl h-12 px-8 text-sm font-bold border-neutral-200 hover:bg-neutral-50"
+              >
+                {cancelLabel}
+              </Button>
+            )}
             <Button 
-              variant="outline" 
-              onClick={onCancel} 
-              className="rounded-xl h-12 px-8 text-sm font-bold border-neutral-200 hover:bg-neutral-50"
-            >
-              {cancelLabel}
-            </Button>
-          )}
-          {onSubmit && (
-            <Button 
-              onClick={onSubmit} 
+              type="submit" 
+              disabled={isSubmitting}
               className="rounded-xl h-12 px-10 text-sm font-bold shadow-xl shadow-primary/20 bg-primary hover:scale-[1.02] transition-transform"
             >
               <MapPin className="w-4 h-4 mr-2" />
               {submitLabel}
             </Button>
-          )}
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </form>
+    </FormProvider>
   );
 }

@@ -1,15 +1,13 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Patient } from '../../types';
 import { usePatients } from '../../hooks/usePatients';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { TRANSLATIONS } from '../../constants/mp_data';
-import { Stethoscope, ArrowRight, FileText, MapPin } from 'lucide-react';
+import { Stethoscope, FileText, MapPin } from 'lucide-react';
 
 import { DashboardLayout } from '../shared/DashboardLayout';
 import { DashboardHeader } from '../shared/DashboardHeader';
@@ -18,11 +16,13 @@ import { PatientDirectory } from '../shared/PatientDirectory';
 import { PatientDetailsDialog } from '../shared/PatientDetailsDialog';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
 import { usePatientActions } from '../../hooks/usePatientActions';
-import { Column } from '../shared/GenericTable';
 import { ImageUpload } from '../ImageUpload';
+import { useTranslation } from '../../hooks/useTranslation';
+import { getSharedPatientColumns } from '../shared/PatientColumns';
 
 export default function ConsultantDashboard() {
   const { profile } = useAuth();
+  const { lang, t } = useTranslation();
   const { patients, isOffline, isSyncing, pendingCount } = usePatients({ status: 'pending_consultation', realtime: true });
   const { consultPatient } = usePatientActions();
   
@@ -32,7 +32,7 @@ export default function ConsultantDashboard() {
   const [submitting, setSubmitting] = useState(false);
   
   // Reset review state when patient changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedPatient) {
       setConsultAdvice(selectedPatient.consultant_advice || '');
       setConsultImage(selectedPatient.consultant_image_url || '');
@@ -42,72 +42,29 @@ export default function ConsultantDashboard() {
     }
   }, [selectedPatient]);
 
-  const lang = profile?.preferred_language || 'hi';
-  const t = TRANSLATIONS[lang];
-
   const stats = useDashboardStats({ patients, role: 'consultant', lang });
 
   const handleCompleteReview = async () => {
     if (!selectedPatient || !consultAdvice) {
-      toast.error("Please provide clinical advice");
+      toast.error(lang === 'en' ? "Please provide clinical advice" : "कृपया नैदानिक सलाह प्रदान करें");
       return;
     }
 
     setSubmitting(true);
     try {
       consultPatient(selectedPatient, consultAdvice, consultImage);
-      toast.success("Review queued!");
+      toast.success(lang === 'en' ? "Review queued!" : "समीक्षा कतार में!");
       setSelectedPatient(null);
-      setConsultAdvice('');
-      setConsultImage('');
     } catch (error) {
-      toast.error("Failed to update record");
+      toast.error(lang === 'en' ? "Failed to update record" : "रिकॉर्ड अपडेट करने में विफल");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const columns: Column<Patient>[] = [
-    {
-      header: t.fullName,
-      accessor: (p) => (
-        <div>
-          <p className="font-semibold text-neutral-900">{p.name}</p>
-          <p className="text-xs text-neutral-500">{p.age}y • {p.contact}</p>
-        </div>
-      )
-    },
-    {
-      header: t.district,
-      accessor: (p) => (
-        <Badge variant="outline" className="rounded-full font-normal">{p.district}</Badge>
-      )
-    },
-    {
-      header: t.timeAdded,
-      accessor: (p) => (
-        <p className="text-xs font-medium text-neutral-400">
-          {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </p>
-      )
-    },
-    {
-      header: t.actions,
-      accessor: (p) => (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="rounded-full gap-2"
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedPatient(p);
-          }}
-        >
-          {lang === 'en' ? "Review" : "समीक्षा"} <ArrowRight className="w-3 h-3" />
-        </Button>
-      )
-    }
-  ];
+  const columns = useMemo(() => 
+    getSharedPatientColumns(t, setSelectedPatient, lang), 
+  [t, lang]);
 
   return (
     <DashboardLayout>
@@ -138,7 +95,7 @@ export default function ConsultantDashboard() {
         onPatientSelect={setSelectedPatient}
         lang={lang}
         title={t.waitConsultation}
-        description="Patients awaiting clinical evaluation."
+        description={lang === 'en' ? "Patients awaiting clinical evaluation." : "नैदानिक मूल्यांकन की प्रतीक्षा कर रहे मरीज।"}
       />
 
       <PatientDetailsDialog 
@@ -157,18 +114,18 @@ export default function ConsultantDashboard() {
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">{lang === 'en' ? "Final Consultation Notes" : "अंतिम परामर्श नोट्स"}</Label>
                 <Textarea 
-                  placeholder="Enter advice..." 
+                  placeholder={lang === 'en' ? "Enter advice..." : "सलाह दर्ज करें..."}
                   className="min-h-[150px] rounded-2xl resize-none shadow-sm"
                   value={consultAdvice}
                   onChange={e => setConsultAdvice(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-semibold">Attach Reports</Label>
+                <Label className="text-sm font-semibold">{lang === 'en' ? "Attach Reports" : "रिपोर्ट संलग्न करें"}</Label>
                 <ImageUpload 
                   folder="consultation_reports" 
                   onUploadComplete={setConsultImage}
-                  label="Upload Report"
+                  label={lang === 'en' ? "Upload Report" : "रिपोर्ट अपलोड करें"}
                 />
               </div>
             </div>

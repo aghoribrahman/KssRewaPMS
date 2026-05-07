@@ -1,22 +1,20 @@
 import * as React from 'react';
-import { Patient } from '../../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { ClipboardCheck } from 'lucide-react';
-import { TRANSLATIONS } from '../../../constants/mp_data';
+import { useFormContext, Controller } from 'react-hook-form';
+import { PatientFormData } from '../../../lib/schemas';
 
 interface SectionProps {
-  data: Partial<Patient>;
-  onChange: (field: keyof Patient, value: any) => void;
-  onCheckboxChange: (field: 'symptoms' | 'counselling_topics' | 'referral', value: string, checked: boolean) => void;
   lang: 'en' | 'hi';
   readOnly?: boolean;
 }
 
-export function SupportSection({ data, onChange, onCheckboxChange, lang, readOnly }: SectionProps) {
-  const t = TRANSLATIONS[lang];
+export function SupportSection({ lang, readOnly }: SectionProps) {
+  const { register, control, watch } = useFormContext<PatientFormData>();
+  const selectedTopics = watch('counselling_topics') || [];
 
   return (
     <div className="space-y-6 pt-6 border-t border-neutral-100">
@@ -41,14 +39,25 @@ export function SupportSection({ data, onChange, onCheckboxChange, lang, readOnl
                   'Nutrition Kit instructions'
                 ].map((topic) => (
                   <div key={topic} className={`flex items-center space-x-4 p-4 rounded-2xl transition-all ${
-                    data.counselling_topics?.includes(topic) ? 'bg-primary/5' : 'hover:bg-neutral-50'
+                    selectedTopics.includes(topic) ? 'bg-primary/5' : 'hover:bg-neutral-50'
                   }`}>
-                    <Checkbox 
-                      id={topic} 
-                      checked={!!(data.counselling_topics?.includes(topic))}
-                      onCheckedChange={(checked) => onCheckboxChange('counselling_topics', topic, !!checked)}
-                      disabled={readOnly}
-                      className="w-5 h-5 rounded-md"
+                    <Controller
+                      name="counselling_topics"
+                      control={control}
+                      render={({ field }) => (
+                        <Checkbox 
+                          id={topic} 
+                          checked={field.value?.includes(topic)}
+                          onCheckedChange={(checked) => {
+                            const newValue = checked
+                              ? [...(field.value || []), topic]
+                              : (field.value || []).filter((t: string) => t !== topic);
+                            field.onChange(newValue);
+                          }}
+                          disabled={readOnly}
+                          className="w-5 h-5 rounded-md"
+                        />
+                      )}
                     />
                     <Label htmlFor={topic} className="text-sm font-bold text-neutral-700 cursor-pointer">{topic}</Label>
                   </div>
@@ -61,13 +70,19 @@ export function SupportSection({ data, onChange, onCheckboxChange, lang, readOnl
                   <Label className="text-base font-black text-neutral-900">Meal Box Required?</Label>
                   <p className="text-xs text-neutral-500 font-medium">Add patient to the distribution queue</p>
                </div>
-               <Checkbox 
-                  id="meal-req" 
-                  checked={!!data.meal_required}
-                  onCheckedChange={(checked) => onChange('meal_required', !!checked)}
-                  disabled={readOnly}
-                  className="w-8 h-8 rounded-xl border-2"
-                />
+               <Controller
+                 name="meal_required"
+                 control={control}
+                 render={({ field }) => (
+                   <Checkbox 
+                      id="meal-req" 
+                      checked={!!field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={readOnly}
+                      className="w-8 h-8 rounded-xl border-2"
+                    />
+                 )}
+               />
             </div>
           </CardContent>
         </Card>
@@ -80,20 +95,25 @@ export function SupportSection({ data, onChange, onCheckboxChange, lang, readOnl
             <div className="space-y-4">
               <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Specific Concerns or Questions</Label>
               <Textarea 
-                value={data.specific_concerns || ''} 
-                onChange={(e) => onChange('specific_concerns', e.target.value)} 
+                {...register('specific_concerns')}
                 disabled={readOnly}
                 placeholder="Enter any questions patient had..."
                 className="rounded-2xl min-h-[160px] border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium p-6 resize-none"
               />
             </div>
             <div className="flex items-center space-x-4 p-6 bg-primary/5 border border-primary/10 rounded-[2rem]">
-              <Checkbox 
-                id="feed-confirm" 
-                checked={!!data.feedback_confirmation}
-                onCheckedChange={(checked) => onChange('feedback_confirmation', !!checked)}
-                disabled={readOnly}
-                className="w-6 h-6 rounded-lg"
+              <Controller
+                name="feedback_confirmation"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox 
+                    id="feed-confirm" 
+                    checked={!!field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={readOnly}
+                    className="w-6 h-6 rounded-lg"
+                  />
+                )}
               />
               <Label htmlFor="feed-confirm" className="text-sm font-bold text-primary leading-snug cursor-pointer">
                 Patient/Guardian confirms they understood all medical and dietary instructions provided.

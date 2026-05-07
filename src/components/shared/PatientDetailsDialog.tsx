@@ -80,7 +80,6 @@ export function PatientDetailsDialog({
                   <TabsContent value="form" className="focus-visible:outline-none">
                     <CounsellingForm
                       data={patient || {}}
-                      onChange={() => { }}
                       readOnly={true}
                     />
                   </TabsContent>

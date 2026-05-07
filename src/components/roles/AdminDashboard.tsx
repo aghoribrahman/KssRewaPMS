@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Patient } from '../../types';
 import { usePatients } from '../../hooks/usePatients';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { TRANSLATIONS } from '../../constants/mp_data';
-import { Shield, ChevronRight, MapPin } from 'lucide-react';
+import { Shield, ChevronRight } from 'lucide-react';
 
 import { DashboardLayout } from '../shared/DashboardLayout';
 import { DashboardHeader } from '../shared/DashboardHeader';
@@ -15,33 +14,25 @@ import { PatientDirectory } from '../shared/PatientDirectory';
 import { PatientDetailsDialog } from '../shared/PatientDetailsDialog';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
 import { Column } from '../shared/GenericTable';
+import { useTranslation } from '../../hooks/useTranslation';
+import { StatusBadge } from '../shared/StatusBadge';
+import { formatDate } from '../../lib/dateUtils';
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
-  const { patients, loading, isOffline } = usePatients({ realtime: true });
+  const { lang, t } = useTranslation();
+  const { patients, isOffline } = usePatients({ realtime: true });
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-
-  const lang = profile?.preferred_language || 'hi';
-  const t = TRANSLATIONS[lang];
 
   const stats = useDashboardStats({ patients, role: 'admin', lang });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'complete': return 'bg-green-100 text-green-700';
-      case 'pending_meal': return 'bg-blue-100 text-blue-700';
-      case 'pending_consultation': return 'bg-orange-100 text-orange-700';
-      default: return 'bg-neutral-100 text-neutral-700';
-    }
-  };
-
-  const columns: Column<Patient>[] = [
+  const columns: Column<Patient>[] = useMemo(() => [
     {
       header: t.fullName,
       accessor: (p) => (
         <div>
           <p className="font-semibold text-neutral-900">{p.name}</p>
-          <p className="text-xs text-neutral-500">{new Date(p.created_at).toLocaleDateString()}</p>
+          <p className="text-xs text-neutral-500">{formatDate(p.created_at)}</p>
         </div>
       )
     },
@@ -55,11 +46,7 @@ export default function AdminDashboard() {
     },
     {
       header: 'Status',
-      accessor: (p) => (
-        <Badge variant="secondary" className={`${getStatusColor(p.status)} rounded-full shadow-none border-none`}>
-          {p.status.replace('_', ' ')}
-        </Badge>
-      )
+      accessor: (p) => <StatusBadge status={p.status} />
     },
     {
       header: 'Progress',
@@ -97,7 +84,7 @@ export default function AdminDashboard() {
         </Button>
       )
     }
-  ];
+  ], [t]);
 
   return (
     <DashboardLayout>
@@ -124,7 +111,7 @@ export default function AdminDashboard() {
         onPatientSelect={setSelectedPatient}
         lang={lang}
         title={t.patientData}
-        description="Comprehensive history of all patient interactions across districts."
+        description={lang === 'en' ? "Comprehensive history of all patient interactions." : "सभी मरीज बातचीत का व्यापक इतिहास।"}
       />
 
       <PatientDetailsDialog 

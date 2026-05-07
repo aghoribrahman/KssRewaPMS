@@ -18,7 +18,7 @@ export function usePatients(options: UsePatientsOptions = {}) {
   const { isSyncing, pendingCount } = useSyncStatus();
 
   const refresh = useCallback(() => {
-    fetchPatients(profile?.assigned_districts);
+    fetchPatients(profile?.assigned_districts || undefined);
   }, [fetchPatients, profile?.assigned_districts]);
 
   useEffect(() => {

@@ -178,13 +178,17 @@ export const useStore = create<AppState>()(
                     abha_id, aadhar_number, sickle_cell_status, pre_existing_diagnosis, 
                     date_of_diagnosis, master_patient_id, patient_master, ...visitData } = nextItem.data as any;
 
+            if (!nextItem.patientId) {
+              throw new Error('Missing patient ID for update');
+            }
+
             const { error: updateErr } = await supabase.from('patient_visits')
               .update({ 
                 ...visitData, 
                 updated_at: new Date().toISOString(),
                 last_transaction_id: nextItem.id 
               })
-              .eq('id', nextItem.patientId);
+              .eq('id', nextItem.patientId as string);
               
             error = updateErr;
           }
