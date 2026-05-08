@@ -11,11 +11,12 @@ import { PatientFormData } from '../../../lib/schemas';
 interface SectionProps {
   lang: 'en' | 'hi';
   readOnly?: boolean;
+  disabledFields?: string[];
 }
 
 const RequiredBadge = () => <span className="text-red-500 ml-1 font-bold">*</span>;
 
-export function MedicalSection({ lang, readOnly }: SectionProps) {
+export function MedicalSection({ lang, readOnly, disabledFields = [] }: SectionProps) {
   const { register, control, watch, formState: { errors } } = useFormContext<PatientFormData>();
   const preExistingDiagnosis = watch('pre_existing_diagnosis');
   const selectedSymptoms = watch('symptoms') || [];

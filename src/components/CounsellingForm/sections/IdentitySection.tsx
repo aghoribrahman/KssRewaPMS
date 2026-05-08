@@ -12,11 +12,12 @@ import { PatientFormData } from '../../../lib/schemas';
 interface SectionProps {
   lang: 'en' | 'hi';
   readOnly?: boolean;
+  disabledFields?: string[];
 }
 
 const RequiredBadge = () => <span className="text-red-500 ml-1 font-bold">*</span>;
 
-export function IdentitySection({ lang, readOnly }: SectionProps) {
+export function IdentitySection({ lang, readOnly, disabledFields = [] }: SectionProps) {
   const t = TRANSLATIONS[lang];
   const { register, control, formState: { errors } } = useFormContext<PatientFormData>();
 
@@ -61,7 +62,7 @@ export function IdentitySection({ lang, readOnly }: SectionProps) {
                 <Input 
                   id="name"
                   {...register('name')}
-                  disabled={readOnly}
+                  disabled={readOnly || disabledFields.includes('name')}
                   placeholder="e.g. Rahul Kumar"
                   className={`rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium ${errors.name ? 'border-red-500' : ''}`}
                 />
@@ -74,7 +75,7 @@ export function IdentitySection({ lang, readOnly }: SectionProps) {
                     id="age"
                     type="number"
                     {...register('age')}
-                    disabled={readOnly}
+                    disabled={readOnly || disabledFields.includes('age')}
                     placeholder="Years"
                     className={`rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium ${errors.age ? 'border-red-500' : ''}`}
                   />
@@ -86,7 +87,7 @@ export function IdentitySection({ lang, readOnly }: SectionProps) {
                     name="gender"
                     control={control}
                     render={({ field }) => (
-                      <Select value={field.value} onValueChange={field.onChange} disabled={readOnly}>
+                      <Select value={field.value} onValueChange={field.onChange} disabled={readOnly || disabledFields.includes('gender')}>
                         <SelectTrigger className={`rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium ${errors.gender ? 'border-red-500' : ''}`}>
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
@@ -105,7 +106,7 @@ export function IdentitySection({ lang, readOnly }: SectionProps) {
                 <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Mobile Number <RequiredBadge /></Label>
                 <Input 
                   {...register('contact')}
-                  disabled={readOnly}
+                  disabled={readOnly || disabledFields.includes('contact')}
                   placeholder="10-digit number"
                   maxLength={10}
                   className={`rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium ${errors.contact ? 'border-red-500' : ''}`}
@@ -116,7 +117,7 @@ export function IdentitySection({ lang, readOnly }: SectionProps) {
                 <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">ABHA ID / Aadhaar</Label>
                 <Input 
                   {...register('abha_id')}
-                  disabled={readOnly}
+                  disabled={readOnly || disabledFields.includes('abha_id')}
                   placeholder="Identification Number"
                   className="rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium"
                 />
@@ -136,7 +137,7 @@ export function IdentitySection({ lang, readOnly }: SectionProps) {
                     name="district"
                     control={control}
                     render={({ field }) => (
-                      <Select value={field.value} onValueChange={field.onChange} disabled={readOnly}>
+                      <Select value={field.value} onValueChange={field.onChange} disabled={readOnly || disabledFields.includes('district')}>
                         <SelectTrigger className={`rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium ${errors.district ? 'border-red-500' : ''}`}>
                           <SelectValue placeholder="Select District" />
                         </SelectTrigger>
@@ -154,7 +155,7 @@ export function IdentitySection({ lang, readOnly }: SectionProps) {
                   <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Block / Tehsil <RequiredBadge /></Label>
                   <Input 
                     {...register('block')}
-                    disabled={readOnly}
+                    disabled={readOnly || disabledFields.includes('block')}
                     placeholder="e.g. Rewa"
                     className={`rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium ${errors.block ? 'border-red-500' : ''}`}
                   />
@@ -164,7 +165,7 @@ export function IdentitySection({ lang, readOnly }: SectionProps) {
                   <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Village <RequiredBadge /></Label>
                   <Input 
                     {...register('village')}
-                    disabled={readOnly}
+                    disabled={readOnly || disabledFields.includes('village')}
                     placeholder="Village name"
                     className={`rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium ${errors.village ? 'border-red-500' : ''}`}
                   />
@@ -174,7 +175,7 @@ export function IdentitySection({ lang, readOnly }: SectionProps) {
                   <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Postal Address <RequiredBadge /></Label>
                   <Input 
                     {...register('address')}
-                    disabled={readOnly}
+                    disabled={readOnly || disabledFields.includes('address')}
                     placeholder="House no, Street"
                     className={`rounded-2xl h-14 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-base font-medium ${errors.address ? 'border-red-500' : ''}`}
                   />

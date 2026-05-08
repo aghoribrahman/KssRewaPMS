@@ -10,9 +10,10 @@ import { PatientFormData } from '../../../lib/schemas';
 interface SectionProps {
   lang: 'en' | 'hi';
   readOnly?: boolean;
+  disabledFields?: string[];
 }
 
-export function SupportSection({ lang, readOnly }: SectionProps) {
+export function SupportSection({ lang, readOnly, disabledFields = [] }: SectionProps) {
   const { register, control, watch } = useFormContext<PatientFormData>();
   const selectedTopics = watch('counselling_topics') || [];
 

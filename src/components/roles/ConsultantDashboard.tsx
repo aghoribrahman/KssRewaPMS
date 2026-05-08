@@ -24,13 +24,13 @@ export default function ConsultantDashboard() {
   const { profile } = useAuth();
   const { lang, t } = useTranslation();
   const { patients, isOffline, isSyncing, pendingCount } = usePatients({ status: 'pending_consultation', realtime: true });
-  const { consultPatient } = usePatientActions();
-  
+  const { consultPatient, updatePatientRecord } = usePatientActions();
+
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [consultAdvice, setConsultAdvice] = useState('');
   const [consultImage, setConsultImage] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Reset review state when patient changes
   useEffect(() => {
     if (selectedPatient) {
@@ -50,8 +50,8 @@ export default function ConsultantDashboard() {
     const adviceTrimmed = consultAdvice.trim();
     if (adviceTrimmed.length < 10) {
       toast.error(
-        lang === 'en' 
-          ? "Please provide detailed clinical advice (min 10 chars)" 
+        lang === 'en'
+          ? "Please provide detailed clinical advice (min 10 chars)"
           : "कृपया विस्तृत नैदानिक सलाह प्रदान करें (कम से कम 10 वर्ण)"
       );
       return;
@@ -69,13 +69,26 @@ export default function ConsultantDashboard() {
     }
   };
 
-  const columns = useMemo(() => 
-    getSharedPatientColumns(t, setSelectedPatient, lang), 
-  [t, lang]);
+  const handleUpdatePatient = async (data: any) => {
+    if (!selectedPatient) return;
+
+    try {
+      updatePatientRecord(selectedPatient.id, data);
+      toast.success(lang === 'en' ? "Patient record updated!" : "मरीज का रिकॉर्ड अपडेट किया गया!");
+      // Update local state to reflect changes immediately
+      setSelectedPatient(prev => prev ? { ...prev, ...data } : null);
+    } catch (error) {
+      toast.error(lang === 'en' ? "Failed to update record" : "रिकॉर्ड अपडेट करने में विफल");
+    }
+  };
+
+  const columns = useMemo(() =>
+    getSharedPatientColumns(t, setSelectedPatient, lang),
+    [t, lang]);
 
   return (
     <DashboardLayout>
-      <DashboardHeader 
+      <DashboardHeader
         title={lang === 'en' ? 'Clinical Review' : 'नैदानिक समीक्षा'}
         subtitle="Madhya Pradesh Regional Health Center • Clinical Oversight"
         role="Consultant"
@@ -96,7 +109,7 @@ export default function ConsultantDashboard() {
 
       <StatGrid stats={stats} />
 
-      <PatientDirectory 
+      <PatientDirectory
         patients={patients}
         columns={columns}
         onPatientSelect={setSelectedPatient}
@@ -105,10 +118,13 @@ export default function ConsultantDashboard() {
         description={lang === 'en' ? "Patients awaiting clinical evaluation." : "नैदानिक मूल्यांकन की प्रतीक्षा कर रहे मरीज।"}
       />
 
-      <PatientDetailsDialog 
+      <PatientDetailsDialog
         patient={selectedPatient}
         onClose={() => setSelectedPatient(null)}
         lang={lang}
+        readOnly={false}
+        disabledFields={['name', 'contact', 'district', 'block', 'village', 'address', 'abha_id']}
+        onFormSubmit={handleUpdatePatient}
         subtitle={lang === 'en' ? "Comprehensive Clinical Review" : "व्यापक नैदानिक समीक्षा"}
         actionTabTitle={lang === 'en' ? "Clinical Review" : "नैदानिक समीक्षा"}
         actionContent={
@@ -120,7 +136,7 @@ export default function ConsultantDashboard() {
             <div className="grid grid-cols-1 gap-6">
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">{lang === 'en' ? "Final Consultation Notes" : "अंतिम परामर्श नोट्स"}</Label>
-                <Textarea 
+                <Textarea
                   placeholder={lang === 'en' ? "Enter advice..." : "सलाह दर्ज करें..."}
                   className="min-h-[150px] rounded-2xl resize-none shadow-sm"
                   value={consultAdvice}
@@ -129,8 +145,8 @@ export default function ConsultantDashboard() {
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">{lang === 'en' ? "Attach Reports" : "रिपोर्ट संलग्न करें"}</Label>
-                <ImageUpload 
-                  folder="consultation_reports" 
+                <ImageUpload
+                  folder="consultation_reports"
                   onUploadComplete={setConsultImage}
                   label={lang === 'en' ? "Upload Report" : "रिपोर्ट अपलोड करें"}
                 />
@@ -140,10 +156,11 @@ export default function ConsultantDashboard() {
         }
         actions={
           <>
-            <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => setSelectedPatient(null)}>
-              {lang === 'en' ? "Cancel" : "रद्द करें"}
-            </Button>
-            <Button className="flex-[2] rounded-xl h-12 font-bold shadow-lg" onClick={handleCompleteReview} disabled={submitting}>
+            <Button
+              className="p-4 hover:scale-105 transition-all active:scale-95 hover:shadow-2xl hover:shadow-primary/30"
+              onClick={handleCompleteReview}
+              disabled={submitting}
+            >
               {submitting ? "Processing..." : t.completeReview}
             </Button>
           </>

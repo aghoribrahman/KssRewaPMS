@@ -17,6 +17,9 @@ interface PatientDetailsDialogProps {
   actionTabTitle?: string;
   title?: string;
   subtitle?: string;
+  readOnly?: boolean;
+  disabledFields?: string[];
+  onFormSubmit?: (data: any) => void;
 }
 
 export function PatientDetailsDialog({
@@ -28,13 +31,16 @@ export function PatientDetailsDialog({
   actionTabTitle,
   title,
   subtitle,
+  readOnly = true,
+  disabledFields = [],
+  onFormSubmit,
 }: PatientDetailsDialogProps) {
   const t = TRANSLATIONS[lang];
 
   return (
     <Dialog open={!!patient} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] md:max-w-4xl p-0 overflow-hidden border-none shadow-2xl h-[90vh] flex flex-col gap-0" showCloseButton={false}>
-        <div className="flex flex-col flex-1 h-full bg-white overflow-hidden">
+        <div className="flex flex-col flex-1 h-full bg-white overflow-hidden relative">
           {/* Custom Header */}
           <div className="bg-neutral-900 text-white p-6 flex shrink-0 flex-row items-center justify-between">
             <div>
@@ -43,10 +49,10 @@ export function PatientDetailsDialog({
                 {subtitle || (lang === 'en' ? "Patient Registration Record" : "मरीज पंजीकरण रिकॉर्ड")}
               </p>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-white hover:bg-white/10 rounded-full h-10 w-10" 
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/10 rounded-full h-10 w-10"
               onClick={onClose}
             >
               <X className="w-5 h-5" />
@@ -56,15 +62,15 @@ export function PatientDetailsDialog({
           <div className="flex-1 flex flex-col min-h-0 bg-white">
             <Tabs defaultValue="summary" className="w-full flex-1 flex flex-col min-h-0">
               <div className="px-6 md:px-8 pt-6 bg-neutral-50/50 border-b border-neutral-100">
-                <TabsList className="flex w-full gap-8 rounded-none h-12 bg-transparent p-0 border-none justify-start">
-                  <TabsTrigger value="summary" className="rounded-none border-b-2 border-transparent data-active:border-primary data-active:text-primary bg-transparent shadow-none font-bold px-1 pb-4">
+                <TabsList className="flex w-full gap-4 rounded-full h-auto bg-neutral-100/50 p-1.5 border-none justify-start w-fit">
+                  <TabsTrigger value="summary" className="rounded-full data-active:bg-white data-active:text-primary data-active:shadow-sm bg-transparent transition-all font-bold px-6 py-2.5 text-sm">
                     {lang === 'en' ? "Quick Summary" : "त्वरित सारांश"}
                   </TabsTrigger>
-                  <TabsTrigger value="form" className="rounded-none border-b-2 border-transparent data-active:border-primary data-active:text-primary bg-transparent shadow-none font-bold px-1 pb-4">
+                  <TabsTrigger value="form" className="rounded-full data-active:bg-white data-active:text-primary data-active:shadow-sm bg-transparent transition-all font-bold px-6 py-2.5 text-sm">
                     {lang === 'en' ? "Full Record" : "पूरा रिकॉर्ड"}
                   </TabsTrigger>
                   {actionContent && (
-                    <TabsTrigger value="action" className="rounded-none border-b-2 border-transparent data-active:border-primary data-active:text-primary bg-transparent shadow-none font-bold px-1 pb-4">
+                    <TabsTrigger value="action" className="rounded-full data-active:bg-white data-active:text-primary data-active:shadow-sm bg-transparent transition-all font-bold px-6 py-2.5 text-sm">
                       {actionTabTitle || (lang === 'en' ? "Action" : "कार्रवाई")}
                     </TabsTrigger>
                   )}
@@ -80,7 +86,9 @@ export function PatientDetailsDialog({
                   <TabsContent value="form" className="focus-visible:outline-none">
                     <CounsellingForm
                       data={patient || {}}
-                      readOnly={true}
+                      readOnly={readOnly}
+                      disabledFields={disabledFields}
+                      onSubmit={onFormSubmit}
                     />
                   </TabsContent>
 
@@ -95,8 +103,10 @@ export function PatientDetailsDialog({
           </div>
 
           {actions && (
-            <div className="p-6 border-t border-neutral-100 flex shrink-0 flex-col sm:flex-row gap-3 bg-white px-8">
-              {actions}
+            <div className="p-8 flex flex-col sm:flex-row gap-3 bg-transparent px-8 absolute bottom-0 left-0 right-0 z-50 pointer-events-none">
+              <div className="flex flex-col sm:flex-row gap-3 w-full pointer-events-auto">
+                {actions}
+              </div>
             </div>
           )}
         </div>

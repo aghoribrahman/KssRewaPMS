@@ -49,5 +49,15 @@ export function usePatientActions() {
     }, patient.id);
   };
 
-  return { registerPatient, consultPatient, serveMeal };
+  const updatePatientRecord = (patientId: string, data: Partial<Patient>) => {
+    // Create a clean data object without joining fields
+    const { patient_master, ...cleanData } = data as any;
+
+    addToSyncQueue('UPDATE', {
+      ...cleanData,
+      ...systemMetadata
+    }, patientId);
+  };
+
+  return { registerPatient, consultPatient, serveMeal, updatePatientRecord };
 }

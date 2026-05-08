@@ -20,6 +20,7 @@ interface CounsellingFormProps {
   submitLabel?: string;
   cancelLabel?: string;
   readOnly?: boolean;
+  disabledFields?: string[];
 }
 
 export function CounsellingForm({ 
@@ -29,7 +30,8 @@ export function CounsellingForm({
   onContactChange,
   submitLabel = 'Confirm Registration',
   cancelLabel = 'Cancel',
-  readOnly = false 
+  readOnly = false,
+  disabledFields = []
 }: CounsellingFormProps) {
   const { profile } = useAuth();
   const lang = (profile?.preferred_language as 'en' | 'hi') || 'hi';
@@ -90,16 +92,19 @@ export function CounsellingForm({
         <IdentitySection 
           lang={lang} 
           readOnly={readOnly} 
+          disabledFields={disabledFields}
         />
 
         <MedicalSection 
           lang={lang} 
           readOnly={readOnly} 
+          disabledFields={disabledFields}
         />
 
         <SupportSection 
           lang={lang} 
           readOnly={readOnly} 
+          disabledFields={disabledFields}
         />
 
         {!readOnly && (
