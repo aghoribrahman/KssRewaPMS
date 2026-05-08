@@ -13,6 +13,8 @@ import { StatGrid } from '../shared/StatGrid';
 import { PatientDirectory } from '../shared/PatientDirectory';
 import { PatientDetailsDialog } from '../shared/PatientDetailsDialog';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
+import { usePatientActions } from '../../hooks/usePatientActions';
+import { toast } from 'sonner';
 import { Column } from '../shared/GenericTable';
 import { useTranslation } from '../../hooks/useTranslation';
 import { StatusBadge } from '../shared/StatusBadge';
@@ -22,9 +24,21 @@ export default function AdminDashboard() {
   const { profile } = useAuth();
   const { lang, t } = useTranslation();
   const { patients, isOffline } = usePatients({ realtime: true });
+  const { updatePatientRecord } = usePatientActions();
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
   const stats = useDashboardStats({ patients, role: 'admin', lang });
+
+  const handleUpdatePatient = async (data: any) => {
+    if (!selectedPatient) return;
+    try {
+      updatePatientRecord(selectedPatient.id, data);
+      toast.success(lang === 'en' ? "Record updated by Admin" : "प्रशासक द्वारा रिकॉर्ड अपडेट किया गया");
+      setSelectedPatient(prev => prev ? { ...prev, ...data } : null);
+    } catch (error) {
+      toast.error("Failed to update");
+    }
+  };
 
   const columns: Column<Patient>[] = useMemo(() => [
     {
@@ -118,6 +132,8 @@ export default function AdminDashboard() {
         patient={selectedPatient}
         onClose={() => setSelectedPatient(null)}
         lang={lang}
+        readOnly={false}
+        onFormSubmit={handleUpdatePatient}
         subtitle={lang === 'en' ? "Full Administrative Record Audit" : "पूर्ण प्रशासनिक रिकॉर्ड ऑडिट"}
       />
     </DashboardLayout>

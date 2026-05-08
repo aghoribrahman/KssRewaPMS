@@ -32,24 +32,23 @@ export function VisitHistory({ patient }: VisitHistoryProps) {
 
   return (
     <GlobalErrorBoundary>
-      <div className="mt-12 pt-8 border-t border-neutral-100">
-        {/* ... existing content ... */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <h3 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] flex items-center gap-2">
-            <History className="w-5 h-5" />
+      <div className="mt-6 pt-4 border-t border-neutral-100">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+          <h3 className="text-xs font-black text-neutral-400 uppercase tracking-[0.2em] flex items-center gap-2">
+            <History className="w-4 h-4" />
             Visit Timeline
           </h3>
-          <div className="flex gap-2">
-            <Badge variant="outline" className="bg-neutral-50 text-neutral-600 border-neutral-200 rounded-lg px-3 py-1">
-              Total Visits: {history.length}
+          <div className="flex gap-1.5">
+            <Badge variant="outline" className="bg-neutral-50 text-neutral-600 border-neutral-200 rounded-lg px-2 py-0.5 text-[10px]">
+              Visits: {history.length}
             </Badge>
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 rounded-lg px-3 py-1">
-              Kits Provided: {totalKits}
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 rounded-lg px-2 py-0.5 text-[10px]">
+              Kits: {totalKits}
             </Badge>
           </div>
         </div>
         
-        <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-neutral-200 before:to-transparent">
+        <div className="space-y-4 relative before:absolute before:inset-0 before:ml-4 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-neutral-200 before:to-transparent">
           {history.map((visit, index) => {
             const isFirstVisit = index === history.length - 1;
             const visitNumber = history.length - index;
@@ -57,11 +56,11 @@ export function VisitHistory({ patient }: VisitHistoryProps) {
             
             return (
               <div key={visit.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white shadow-lg ring-1 ring-neutral-100 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-transform group-hover:scale-110 ${isPending ? 'bg-amber-50 text-amber-500' : 'bg-white text-neutral-400'}`}>
-                  {isPending ? <Cloud className="w-4 h-4" /> : <span className="text-[10px] font-black tracking-tighter">{visitNumber}</span>}
+                <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 border-white shadow-md ring-1 ring-neutral-100 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-transform group-hover:scale-110 ${isPending ? 'bg-amber-50 text-amber-500' : 'bg-white text-neutral-400'}`}>
+                  {isPending ? <Cloud className="w-3 h-3" /> : <span className="text-[9px] font-black tracking-tighter">{visitNumber}</span>}
                 </div>
 
-                <div className={`w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] p-6 rounded-[2rem] bg-white border shadow-sm transition-all hover:shadow-xl hover:border-primary/10 ${isPending ? 'border-amber-100 bg-amber-50/10' : 'border-neutral-100'}`}>
+                <div className={`w-[calc(100%-3rem)] md:w-[calc(50%-2rem)] p-4 rounded-2xl bg-white border shadow-sm transition-all hover:shadow-lg hover:border-primary/10 ${isPending ? 'border-amber-100 bg-amber-50/10' : 'border-neutral-100'}`}>
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex flex-col">
                       <span className="text-xs font-black text-neutral-900 uppercase tracking-widest">{isFirstVisit ? 'Initial Registration' : `Follow-up Visit ${visitNumber}`}</span>
@@ -97,7 +96,7 @@ export function VisitHistory({ patient }: VisitHistoryProps) {
                             <img 
                               src={visit.consultant_image_url} 
                               alt="Consultation Report" 
-                              className="w-full h-32 object-cover transition-transform group-hover/img:scale-110"
+                              className="w-full h-24 object-cover transition-transform group-hover/img:scale-110"
                             />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
                               <span className="text-white text-[10px] font-bold flex items-center gap-2">

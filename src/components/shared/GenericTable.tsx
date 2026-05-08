@@ -46,24 +46,24 @@ export function GenericTable<T extends { id: string }>({
   emptyState,
 }: GenericTableProps<T>) {
   return (
-    <Card className="rounded-[2.5rem] border-none premium-shadow overflow-hidden bg-white/50 backdrop-blur-md">
-      <CardHeader className="p-8 pb-4 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="space-y-1">
-          <CardTitle className="text-lg font-black text-neutral-900">{title}</CardTitle>
+    <Card className="rounded-2xl border-none premium-shadow overflow-hidden bg-white/50 backdrop-blur-md">
+      <CardHeader className="p-4 pb-2 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="space-y-0.5">
+          <CardTitle className="text-sm font-black text-neutral-900">{title}</CardTitle>
           {description && (
-            <CardDescription className="text-neutral-500 text-xs font-medium">
+            <CardDescription className="text-neutral-500 text-[10px] font-medium">
               {description}
             </CardDescription>
           )}
         </div>
 
         {onSearchChange && (
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="relative w-full md:w-80 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 group-focus-within:text-primary transition-colors" />
-              <Input
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="relative w-full md:w-64 group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 group-focus-within:text-primary transition-colors" />
+              <input
                 placeholder={searchPlaceholder || "Search..."}
-                className="pl-12 pr-4 rounded-2xl border-neutral-100 bg-neutral-100/50 focus:bg-white focus:ring-4 focus:ring-primary/10 h-12 text-sm font-medium transition-all"
+                className="w-full pl-9 pr-3 rounded-lg border border-neutral-100 bg-neutral-100/50 focus:bg-white focus:ring-4 focus:ring-primary/10 h-9 text-[11px] font-medium transition-all outline-none"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
               />
@@ -80,7 +80,7 @@ export function GenericTable<T extends { id: string }>({
                 {columns.map((col, i) => (
                   <TableHead 
                     key={i} 
-                    className={`py-6 text-neutral-400 font-bold uppercase tracking-wider text-[10px] ${i === 0 ? 'pl-8' : ''} ${i === columns.length - 1 ? 'pr-8 text-right' : ''} ${col.headerClassName || ''}`}
+                    className={`py-3 text-neutral-400 font-bold uppercase tracking-wider text-[9px] ${i === 0 ? 'pl-4' : ''} ${i === columns.length - 1 ? 'pr-4 text-right' : ''} ${col.headerClassName || ''}`}
                   >
                     {col.header}
                   </TableHead>
@@ -97,7 +97,7 @@ export function GenericTable<T extends { id: string }>({
                   {columns.map((col, i) => (
                     <TableCell 
                       key={i} 
-                      className={`py-5 ${i === 0 ? 'pl-8' : ''} ${i === columns.length - 1 ? 'pr-8 text-right' : ''} ${col.className || ''}`}
+                      className={`py-2.5 ${i === 0 ? 'pl-4' : ''} ${i === columns.length - 1 ? 'pr-4 text-right' : ''} ${col.className || ''}`}
                     >
                       {typeof col.accessor === 'function' ? col.accessor(item) : (item[col.accessor] as React.ReactNode)}
                     </TableCell>

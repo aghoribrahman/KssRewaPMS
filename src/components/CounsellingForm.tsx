@@ -88,7 +88,7 @@ export function CounsellingForm({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-12 w-full pb-12">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-4 md:space-y-8 w-full pb-12">
         <IdentitySection 
           lang={lang} 
           readOnly={readOnly} 

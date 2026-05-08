@@ -39,9 +39,9 @@ function SummaryCard({ title, icon: Icon, color, bg, fields }: SummaryCardProps)
         <Icon className={cn("w-4 h-4", color)} />
         <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider">{title}</h3>
       </div>
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-3 space-y-2">
         {fields.map((field, idx) => (
-          <div key={idx} className="flex justify-between items-start text-sm">
+          <div key={idx} className="flex justify-between items-start text-xs">
             <span className="text-neutral-500">{field.label}:</span>
             <span className="font-semibold text-neutral-900 text-right ml-4">{field.value}</span>
           </div>
@@ -133,47 +133,47 @@ export function PatientSummary({ patient, className }: PatientSummaryProps) {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {sections.map((section) => (
           <SummaryCard key={section.title} {...section} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Medication Summary */}
         <Card className="border-neutral-100 shadow-sm">
-          <div className="px-4 py-3 border-b bg-amber-50 flex items-center gap-2">
-            <Pill className="w-4 h-4 text-amber-500" />
-            <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider">Medication</h3>
+          <div className="px-3 py-2 border-b bg-amber-50 flex items-center gap-2">
+            <Pill className="w-3 h-3 text-amber-500" />
+            <h3 className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider">Medication</h3>
           </div>
-          <CardContent className="p-4 space-y-2 text-sm">
-            {patient.medication_hydroxyurea && <div><Badge variant="outline" className="mr-2">Hydroxyurea</Badge> {patient.dosage_hydroxyurea}</div>}
-            {patient.medication_folic_acid && <div><Badge variant="outline" className="mr-2">Folic Acid</Badge> {patient.dosage_folic_acid}</div>}
+          <CardContent className="p-3 space-y-1.5 text-[11px]">
+            {patient.medication_hydroxyurea && <div><Badge variant="outline" className="mr-2 py-0 h-4 text-[9px]">HU</Badge> {patient.dosage_hydroxyurea}</div>}
+            {patient.medication_folic_acid && <div><Badge variant="outline" className="mr-2 py-0 h-4 text-[9px]">FA</Badge> {patient.dosage_folic_acid}</div>}
             {!patient.medication_hydroxyurea && !patient.medication_folic_acid && <p className="text-neutral-400 italic">No specific meds</p>}
           </CardContent>
         </Card>
 
         {/* Symptoms */}
         <Card className="border-neutral-100 shadow-sm">
-          <div className="px-4 py-3 border-b bg-neutral-50 flex items-center gap-2">
-            <Stethoscope className="w-4 h-4 text-neutral-500" />
-            <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider">Symptoms</h3>
+          <div className="px-3 py-2 border-b bg-neutral-50 flex items-center gap-2">
+            <Stethoscope className="w-3 h-3 text-neutral-500" />
+            <h3 className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider">Symptoms</h3>
           </div>
-          <CardContent className="p-4 flex flex-wrap gap-1.5">
+          <CardContent className="p-3 flex flex-wrap gap-1">
             {patient.symptoms?.map(s => (
-              <Badge key={s} variant="secondary" className="text-[10px] uppercase font-bold">{s}</Badge>
+              <Badge key={s} variant="secondary" className="text-[8px] uppercase font-bold py-0">{s}</Badge>
             ))}
-            {patient.symptoms?.length === 0 && <p className="text-neutral-400 italic text-sm">No symptoms</p>}
+            {patient.symptoms?.length === 0 && <p className="text-neutral-400 italic text-[11px]">No symptoms</p>}
           </CardContent>
         </Card>
 
         {/* Counselling Topics */}
         <Card className="border-neutral-100 shadow-sm">
-          <div className="px-4 py-3 border-b bg-sky-50 flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-sky-500" />
-            <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider">Counselling</h3>
+          <div className="px-3 py-2 border-b bg-sky-50 flex items-center gap-2">
+            <BookOpen className="w-3 h-3 text-sky-500" />
+            <h3 className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider">Counselling</h3>
           </div>
-          <CardContent className="p-4 text-xs font-medium text-neutral-600 line-clamp-3">
+          <CardContent className="p-3 text-[11px] font-medium text-neutral-600 line-clamp-2">
              {patient.counselling_topics?.length || 0} topics discussed
           </CardContent>
         </Card>

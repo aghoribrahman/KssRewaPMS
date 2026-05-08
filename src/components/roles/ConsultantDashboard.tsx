@@ -156,9 +156,10 @@ export default function ConsultantDashboard() {
         }
         actions={
           <>
-            <Button
-              className="p-4 hover:scale-105 transition-all active:scale-95 hover:shadow-2xl hover:shadow-primary/30"
-              onClick={handleCompleteReview}
+            <Button 
+              variant="premium"
+              className="p-4 text-sm group" 
+              onClick={handleCompleteReview} 
               disabled={submitting}
             >
               {submitting ? "Processing..." : t.completeReview}

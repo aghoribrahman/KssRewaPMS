@@ -29,12 +29,12 @@ export default function MealDistributorDashboard() {
   const { lang, t } = useTranslation();
   const { patients, isOffline, isSyncing, pendingCount } = usePatients({ status: 'pending_meal', realtime: true });
   const { serveMeal } = usePatientActions();
-  
+
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [mealNotes, setMealNotes] = useState('');
   const [mealImage, setMealImage] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Reset review state when patient changes
   useEffect(() => {
     if (selectedPatient) {
@@ -54,8 +54,8 @@ export default function MealDistributorDashboard() {
 
     if (!mealNotes.trim()) {
       toast.error(
-        lang === 'en' 
-          ? "Please add delivery notes (e.g. 'Kit provided')" 
+        lang === 'en'
+          ? "Please add delivery notes (e.g. 'Kit provided')"
           : "कृपया वितरण नोट्स जोड़ें (जैसे 'किट प्रदान की गई')"
       );
       return;
@@ -75,7 +75,7 @@ export default function MealDistributorDashboard() {
 
   return (
     <DashboardLayout>
-      <DashboardHeader 
+      <DashboardHeader
         title={lang === 'en' ? 'Meal Distribution' : 'भोजन वितरण'}
         subtitle="Service delivery for Kiran Seva Sansthan patients."
         role="Meal Distributor"
@@ -99,7 +99,7 @@ export default function MealDistributorDashboard() {
       <div className="space-y-6">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-          <Input 
+          <Input
             placeholder={lang === 'en' ? "Search patient..." : "मरीज खोजें..."}
             className="pl-10 rounded-xl h-12 border-neutral-200 bg-white shadow-sm"
             value={searchQuery}
@@ -112,32 +112,32 @@ export default function MealDistributorDashboard() {
             <Card key={p.id} className="rounded-3xl border-none shadow-xl shadow-neutral-200/40 overflow-hidden group hover:shadow-2xl transition-all duration-300 bg-white">
               <div className="h-2 bg-primary w-full" />
               <CardHeader className="p-6">
-                 <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-xl font-bold text-neutral-900">{p.name}</h3>
-                      <p className="text-sm text-neutral-500 flex items-center gap-1 mt-1 font-medium">
-                        <MapPin className="w-3 h-3" />
-                        {p.district}
-                      </p>
-                    </div>
-                    <StatusBadge status={p.status} />
-                 </div>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-xl font-bold text-neutral-900">{p.name}</h3>
+                    <p className="text-sm text-neutral-500 flex items-center gap-1 mt-1 font-medium">
+                      <MapPin className="w-3 h-3" />
+                      {p.district}
+                    </p>
+                  </div>
+                  <StatusBadge status={p.status} />
+                </div>
               </CardHeader>
               <CardContent className="p-6 pt-0 space-y-6">
-                 <div className="p-4 bg-neutral-50 rounded-2xl space-y-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="w-4 h-4 text-neutral-400" />
-                      <span className="font-medium text-neutral-600">Added: {formatTime(p.created_at)}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-neutral-500 italic">
-                      <User className="w-4 h-4 text-neutral-400" />
-                      <span>Age: {p.age}y</span>
-                    </div>
-                 </div>
-                 <Button className="w-full rounded-xl h-12 gap-2 font-bold" onClick={() => setSelectedPatient(p)}>
-                   <Utensils className="w-4 h-4" />
-                   {lang === 'en' ? "Confirm Delivery" : "वितरण की पुष्टि करें"}
-                 </Button>
+                <div className="p-4 bg-neutral-50 rounded-2xl space-y-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="w-4 h-4 text-neutral-400" />
+                    <span className="font-medium text-neutral-600">Added: {formatTime(p.created_at)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-500 italic">
+                    <User className="w-4 h-4 text-neutral-400" />
+                    <span>Age: {p.age}y</span>
+                  </div>
+                </div>
+                <Button className="w-full rounded-xl h-12 gap-2 font-bold" onClick={() => setSelectedPatient(p)}>
+                  <Utensils className="w-4 h-4" />
+                  {lang === 'en' ? "Confirm Delivery" : "वितरण की पुष्टि करें"}
+                </Button>
               </CardContent>
             </Card>
           ))}
@@ -153,7 +153,7 @@ export default function MealDistributorDashboard() {
         )}
       </div>
 
-      <PatientDetailsDialog 
+      <PatientDetailsDialog
         patient={selectedPatient}
         onClose={() => setSelectedPatient(null)}
         lang={lang}
@@ -170,7 +170,7 @@ export default function MealDistributorDashboard() {
                 <Label className="text-xs font-bold text-neutral-500 uppercase tracking-widest pl-1">
                   {lang === 'en' ? "Notes" : "टिप्पणियाँ"}
                 </Label>
-                <Textarea 
+                <Textarea
                   placeholder={lang === 'en' ? "Enter delivery notes..." : "वितरण नोट्स दर्ज करें..."}
                   className="rounded-2xl min-h-[120px] shadow-sm"
                   value={mealNotes}
@@ -182,10 +182,7 @@ export default function MealDistributorDashboard() {
         }
         actions={
           <>
-            <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={() => setSelectedPatient(null)}>
-              {lang === 'en' ? "Cancel" : "रद्द करें"}
-            </Button>
-            <Button className="flex-[2] rounded-xl h-12 font-bold" onClick={handleDeliver} disabled={submitting}>
+            <Button variant="premium" className="px-8" onClick={handleDeliver} disabled={submitting}>
               {submitting ? "Processing..." : t.confirmDelivery}
             </Button>
           </>

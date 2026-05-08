@@ -171,6 +171,17 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
         patient={selectedPatient}
         onClose={() => setSelectedPatient(null)}
         lang={lang}
+        readOnly={false}
+        onFormSubmit={async (data) => {
+          if (!selectedPatient) return;
+          try {
+            registerPatient(data); // In registrar context, updating is essentially re-registering/upserting
+            toast.success(lang === 'en' ? "Patient record updated" : "मरीज का रिकॉर्ड अपडेट किया गया");
+            setSelectedPatient(prev => prev ? { ...prev, ...data } : null);
+          } catch (e) {
+            toast.error("Update failed");
+          }
+        }}
       />
     </DashboardLayout>
   );
