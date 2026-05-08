@@ -52,7 +52,14 @@ export const TRANSLATIONS = {
     basicInfo: "Basic Information",
     locationDetails: "Location Details",
     submit: "Submit",
-    cancel: "Cancel"
+    cancel: "Cancel",
+    errorTitle: "Something went wrong",
+    errorSubtitle: "The application encountered an unexpected error. Our team has been notified.",
+    retryButton: "Try Again",
+    reloadButton: "Reload Application",
+    copyDiagnostics: "Copy Debug Info",
+    showTechnical: "Show Technical Details",
+    diagnosticsCopied: "Diagnostics copied to clipboard"
   },
   hi: {
     dashboard: "डैशबोर्ड",
@@ -96,6 +103,13 @@ export const TRANSLATIONS = {
     basicInfo: "बुनियादी जानकारी",
     locationDetails: "स्थान विवरण",
     submit: "सबमिट करें",
-    cancel: "रद्द करें"
+    cancel: "रद्द करें",
+    errorTitle: "कुछ गलत हो गया",
+    errorSubtitle: "एप्लिकेशन में एक अप्रत्याशित त्रुटि आई है। हमारी टीम को सूचित कर दिया गया है।",
+    retryButton: "पुनः प्रयास करें",
+    reloadButton: "एप्लिकेशन रीलोड करें",
+    copyDiagnostics: "डीबग जानकारी कॉपी करें",
+    showTechnical: "तकनीकी विवरण दिखाएं",
+    diagnosticsCopied: "डायग्नोस्टिक्स क्लिपबोर्ड पर कॉपी किया गया"
   }
 };

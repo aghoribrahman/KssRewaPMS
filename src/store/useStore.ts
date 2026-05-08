@@ -22,6 +22,19 @@ interface SyncItem {
   error?: string;
 }
 
+interface ErrorLogItem {
+  id: string;
+  userId?: string;
+  message: string;
+  stack?: string;
+  componentStack?: string;
+  deviceInfo: any;
+  appState?: any;
+  breadcrumbs?: any[];
+  timestamp: string;
+  retryCount: number;
+}
+
 interface AppState {
   // Auth Slice
   profile: UserProfile | null;
@@ -35,8 +48,11 @@ interface AppState {
   
   // Sync Slice
   pendingSync: SyncItem[];
+  pendingErrors: ErrorLogItem[];
   addToSyncQueue: (type: 'INSERT' | 'UPDATE', data: Partial<Patient>, patientId?: string) => void;
+  addToErrorQueue: (error: Omit<ErrorLogItem, 'id' | 'timestamp' | 'retryCount'>) => void;
   removeFromSync: (id: string) => void;
+  removeFromErrors: (id: string) => void;
   updateSyncStatus: (id: string, status: SyncItem['status'], error?: string) => void;
 
   // Actions
@@ -79,8 +95,29 @@ export const useStore = create<AppState>()(
         }
       },
 
+      pendingErrors: [],
+      addToErrorQueue: (log) => {
+        const newItem: ErrorLogItem = {
+          ...log,
+          id: generateUUID(),
+          timestamp: new Date().toISOString(),
+          retryCount: 0,
+        };
+        set((state) => ({
+          pendingErrors: [...state.pendingErrors, newItem]
+        }));
+        
+        if (navigator.onLine) {
+          get().processSyncQueue();
+        }
+      },
+
       removeFromSync: (id) => set((state) => ({
         pendingSync: state.pendingSync.filter(i => i.id !== id)
+      })),
+
+      removeFromErrors: (id) => set((state) => ({
+        pendingErrors: state.pendingErrors.filter(i => i.id !== id)
       })),
 
       updateSyncStatus: (id, status, error) => set((state) => ({
@@ -136,12 +173,41 @@ export const useStore = create<AppState>()(
       },
 
       processSyncQueue: async () => {
-        const { pendingSync, updateSyncStatus, removeFromSync } = get();
+        const { pendingSync, pendingErrors, updateSyncStatus, removeFromSync, removeFromErrors } = get();
         
-        // Basic check before entering loop
         if (!navigator.onLine) return;
 
-        // Process one item at a time to maintain order and prevent race conditions
+        // 1. Process pending error logs first (high priority observability)
+        const nextError = pendingErrors.find(e => e.retryCount < 3);
+        if (nextError) {
+          try {
+            const { error } = await supabase.from('app_errors').insert({
+              user_id: nextError.userId,
+              error_message: nextError.message,
+              error_stack: nextError.stack,
+              component_stack: nextError.componentStack,
+              device_info: nextError.deviceInfo,
+              app_state_snapshot: nextError.appState,
+            });
+            if (!error) {
+              removeFromErrors(nextError.id);
+            } else {
+              throw error;
+            }
+          } catch (err) {
+            console.error('Failed to sync error log:', err);
+            set((state) => ({
+              pendingErrors: state.pendingErrors.map(e => 
+                e.id === nextError.id ? { ...e, retryCount: e.retryCount + 1 } : e
+              )
+            }));
+          }
+          // Continue to next item after a small delay
+          setTimeout(() => get().processSyncQueue(), 500);
+          return;
+        }
+
+        // 2. Process pending patient data
         const nextItem = pendingSync.find(i => i.status === 'PENDING' || (i.status === 'FAILED' && i.retryCount < 3));
         
         if (!nextItem) return;
@@ -249,7 +315,8 @@ export const useStore = create<AppState>()(
       partialize: (state) => ({ 
         profile: state.profile, 
         patients: state.patients, 
-        pendingSync: state.pendingSync 
+        pendingSync: state.pendingSync,
+        pendingErrors: state.pendingErrors 
       }), // Only persist critical data
     }
   )

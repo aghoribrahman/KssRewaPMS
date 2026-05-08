@@ -11,6 +11,7 @@ import AdminSettings from './AdminSettings';
 import { LoginForm } from './LoginForm';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
+import { GlobalErrorBoundary } from './shared/GlobalErrorBoundary';
 
 export default function Dashboard() {
   const { user, profile, loading } = useAuth();
@@ -70,7 +71,9 @@ export default function Dashboard() {
             exit={{ opacity: 0, x: -10 }}
             transition={{ duration: 0.2 }}
           >
-            {renderDashboard()}
+            <GlobalErrorBoundary>
+              {renderDashboard()}
+            </GlobalErrorBoundary>
           </motion.div>
         </AnimatePresence>
       </main>
