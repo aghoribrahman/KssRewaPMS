@@ -1,14 +1,16 @@
 import { Language } from '../hooks/useTranslation';
+import { TRANSLATIONS } from '../constants/mp_data';
 
 /**
  * Returns a time-based greeting in the specified language.
  */
-export function getTimeGreeting(lang: Language): string {
+export const getTimeGreeting = (lang: 'en' | 'hi' = 'en') => {
   const hour = new Date().getHours();
-  if (hour < 12) return lang === 'en' ? 'Good Morning' : 'शुभ प्रभात';
-  if (hour < 17) return lang === 'en' ? 'Good Afternoon' : 'शुभ दोपहर';
-  return lang === 'en' ? 'Good Evening' : 'शुभ संध्या';
-}
+  const t = TRANSLATIONS[lang];
+  if (hour < 12) return t.goodMorning;
+  if (hour < 17) return t.goodAfternoon;
+  return t.goodEvening;
+};
 
 /**
  * Formats a date string into a localized time string.

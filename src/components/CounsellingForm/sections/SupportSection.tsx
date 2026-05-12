@@ -65,7 +65,7 @@ export function SupportSection({ lang, readOnly, disabledFields = [] }: SectionP
           <div className="space-y-1.5">
             <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Dietary Preferences</Label>
             <Input 
-              {...register('dietary_preference')} 
+              {...register('dietary_habit')} 
               disabled={readOnly}
               placeholder="e.g. Vegetarian" 
               className="rounded-xl h-10 md:h-11 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-sm font-medium"

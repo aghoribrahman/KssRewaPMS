@@ -38,7 +38,7 @@ export function DashboardHeader({
         {subtitle && <p className="text-neutral-500 text-sm font-medium">{subtitle}</p>}
         
         {isSyncing && (
-          <Badge variant="outline" className="rounded-full px-3 py-1 bg-blue-50 text-blue-600 animate-pulse border-blue-100 flex gap-2 items-center w-fit mt-2">
+          <Badge variant="outline" className="rounded-full px-3 py-1 bg-blue-50 text-blue-600 border-blue-100 flex gap-2 items-center w-fit mt-2">
             <Activity className="w-3 h-3" />
             Syncing {pendingCount} records...
           </Badge>

@@ -56,7 +56,7 @@ export function UserTable({ users, loading }: UserTableProps) {
               </TableCell>
               <TableCell className="pr-8 text-right">
                 <div className="flex items-center justify-end gap-2 text-green-500 font-bold text-[10px] uppercase tracking-widest">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
                   Active
                 </div>
               </TableCell>

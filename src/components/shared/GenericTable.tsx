@@ -72,8 +72,9 @@ export function GenericTable<T extends { id: string }>({
         )}
       </CardHeader>
       
-      <CardContent className="p-4 pt-0">
-        <div className="overflow-x-auto">
+      <CardContent className="p-0 sm:p-4 pt-0">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <Table className="min-w-[900px]">
             <TableHeader>
               <TableRow className="border-none hover:bg-transparent">
@@ -91,7 +92,7 @@ export function GenericTable<T extends { id: string }>({
               {data.map((item) => (
                 <TableRow 
                   key={item.id} 
-                  className={`group border-none hover:bg-neutral-50 transition-colors duration-200 ${onRowClick ? 'cursor-pointer' : ''}`}
+                  className={`group border-none hover:bg-neutral-50 transition-colors duration-100 ${onRowClick ? 'cursor-pointer' : ''}`}
                   onClick={() => onRowClick?.(item)}
                 >
                   {columns.map((col, i) => (
@@ -108,16 +109,61 @@ export function GenericTable<T extends { id: string }>({
           </Table>
         </div>
 
-        {data.length === 0 && emptyState}
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-3 p-4">
+          {data.map((item) => (
+            <div 
+              key={item.id} 
+              className="bg-white rounded-2xl p-4 shadow-sm border border-neutral-100 space-y-3 active:scale-[0.98] transition-transform duration-100"
+              onClick={() => onRowClick?.(item)}
+            >
+              {columns.map((col, i) => {
+                if (col.header === 'Actions' || col.header === 'Action' || col.header === 'Media' || col.header === 'Progress') {
+                   return (
+                     <div key={i} className="flex justify-between items-center pt-2 border-t border-neutral-50">
+                        <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{col.header}</span>
+                        <div>{typeof col.accessor === 'function' ? col.accessor(item) : (item[col.accessor] as React.ReactNode)}</div>
+                     </div>
+                   );
+                }
+                if (i === 0) {
+                  return (
+                    <div key={i} className="flex justify-between items-start">
+                      <div className="text-sm font-bold text-neutral-900">
+                        {typeof col.accessor === 'function' ? col.accessor(item) : (item[col.accessor] as React.ReactNode)}
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={i} className="flex justify-between items-center text-xs">
+                    <span className="text-neutral-500 font-medium">{col.header}</span>
+                    <div className="font-semibold text-neutral-900">
+                      {typeof col.accessor === 'function' ? col.accessor(item) : (item[col.accessor] as React.ReactNode)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
 
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={onPageChange}
-          totalItems={totalItems}
-          itemsPerPage={itemsPerPage}
-          className="mt-8"
-        />
+        {data.length === 0 && (
+          <div className="p-8 text-center">
+            {emptyState || <p className="text-neutral-400 text-xs italic">No records found</p>}
+          </div>
+        )}
+
+        <div className="p-4 pt-0">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            className="mt-4 md:mt-8"
+          />
+        </div>
       </CardContent>
     </Card>
   );

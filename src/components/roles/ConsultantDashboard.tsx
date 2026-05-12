@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { Patient } from '../../types';
 import { usePatients } from '../../hooks/usePatients';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -17,19 +16,26 @@ import { PatientDetailsDialog } from '../shared/PatientDetailsDialog';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
 import { usePatientActions } from '../../hooks/usePatientActions';
 import { ImageUpload } from '../ImageUpload';
-import { useTranslation } from '../../hooks/useTranslation';
 import { getSharedPatientColumns } from '../shared/PatientColumns';
+import { useDashboardHelper } from '../../hooks/useDashboardHelper';
 
 export default function ConsultantDashboard() {
   const { profile } = useAuth();
-  const { lang, t } = useTranslation();
   const { patients, isOffline, isSyncing, pendingCount } = usePatients({ status: 'pending_consultation', realtime: true });
-  const { consultPatient, updatePatientRecord } = usePatientActions();
+  const { consultPatient } = usePatientActions();
 
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [consultAdvice, setConsultAdvice] = useState('');
-  const [consultImage, setConsultImage] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const {
+    selectedPatient,
+    setSelectedPatient,
+    handleUpdatePatient,
+    closeDialog,
+    lang,
+    t
+  } = useDashboardHelper();
+
+  const [consultAdvice, setConsultAdvice] = React.useState('');
+  const [consultImage, setConsultImage] = React.useState('');
+  const [submitting, setSubmitting] = React.useState(false);
 
   // Reset review state when patient changes
   useEffect(() => {
@@ -69,27 +75,14 @@ export default function ConsultantDashboard() {
     }
   };
 
-  const handleUpdatePatient = async (data: any) => {
-    if (!selectedPatient) return;
-
-    try {
-      updatePatientRecord(selectedPatient.id, data);
-      toast.success(lang === 'en' ? "Patient record updated!" : "मरीज का रिकॉर्ड अपडेट किया गया!");
-      // Update local state to reflect changes immediately
-      setSelectedPatient(prev => prev ? { ...prev, ...data } : null);
-    } catch (error) {
-      toast.error(lang === 'en' ? "Failed to update record" : "रिकॉर्ड अपडेट करने में विफल");
-    }
-  };
-
   const columns = useMemo(() =>
     getSharedPatientColumns(t, setSelectedPatient, lang),
-    [t, lang]);
+    [t, lang, setSelectedPatient]);
 
   return (
     <DashboardLayout>
       <DashboardHeader
-        title={lang === 'en' ? 'Clinical Review' : 'नैदानिक समीक्षा'}
+        title={t.clinicalReview}
         subtitle="Madhya Pradesh Regional Health Center • Clinical Oversight"
         role="Consultant"
         lang={lang}
@@ -101,7 +94,7 @@ export default function ConsultantDashboard() {
           profile?.role !== 'admin' && profile?.assigned_districts && (
             <div className="flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-xl border border-primary/10">
               <MapPin className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-tight">Districts: {profile.assigned_districts.join(', ')}</span>
+              <span className="text-xs font-bold uppercase tracking-tight">{t.myDistricts}: {profile.assigned_districts.join(', ')}</span>
             </div>
           )
         }
@@ -120,13 +113,13 @@ export default function ConsultantDashboard() {
 
       <PatientDetailsDialog
         patient={selectedPatient}
-        onClose={() => setSelectedPatient(null)}
+        onClose={closeDialog}
         lang={lang}
         readOnly={false}
         disabledFields={['name', 'contact', 'district', 'block', 'village', 'address', 'abha_id']}
         onFormSubmit={handleUpdatePatient}
-        subtitle={lang === 'en' ? "Comprehensive Clinical Review" : "व्यापक नैदानिक समीक्षा"}
-        actionTabTitle={lang === 'en' ? "Clinical Review" : "नैदानिक समीक्षा"}
+        subtitle={t.clinicalReviewDetail}
+        actionTabTitle={t.clinicalReview}
         actionContent={
           <div className="space-y-6">
             <h3 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
@@ -170,3 +163,4 @@ export default function ConsultantDashboard() {
     </DashboardLayout>
   );
 }
+

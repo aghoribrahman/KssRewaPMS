@@ -14,16 +14,21 @@ export function usePatients(options: UsePatientsOptions = {}) {
   const { profile } = useAuth();
   const loading = useStore(state => state.loading);
   const fetchPatients = useStore(state => state.fetchPatients);
-  const unifiedPatients = useUnifiedPatients();
+  const unifiedPatients = useUnifiedPatients(profile?.assigned_districts || []);
   const { isSyncing, pendingCount } = useSyncStatus();
+  const lastFetched = useStore(state => state.lastFetched);
 
   const refresh = useCallback(() => {
-    fetchPatients(profile?.assigned_districts || undefined);
-  }, [fetchPatients, profile?.assigned_districts]);
+    fetchPatients();
+  }, [fetchPatients]);
 
   useEffect(() => {
     if (profile) {
-      refresh();
+      // Only fetch if we don't have data or data is old (e.g. more than 5 mins)
+      const shouldFetch = !lastFetched || (new Date().getTime() - new Date(lastFetched).getTime() > 5 * 60 * 1000);
+      if (shouldFetch) {
+        refresh();
+      }
     }
 
     if (options.realtime) {
@@ -42,7 +47,7 @@ export function usePatients(options: UsePatientsOptions = {}) {
         supabase.removeChannel(channel);
       };
     }
-  }, [refresh, options.realtime, !!profile]);
+  }, [refresh, options.realtime, !!profile, lastFetched]);
 
   // Apply local filtering for status and limit
   let filtered = unifiedPatients;

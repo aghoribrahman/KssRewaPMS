@@ -16,7 +16,7 @@ export function VisitHistory({ patient }: VisitHistoryProps) {
 
   if (loading) {
     return (
-      <div className="mt-8 space-y-4 animate-pulse">
+      <div className="mt-8 space-y-4">
         <div className="h-4 w-32 bg-neutral-100 rounded" />
         <div className="h-24 w-full bg-neutral-50 rounded-2xl" />
       </div>
@@ -56,7 +56,7 @@ export function VisitHistory({ patient }: VisitHistoryProps) {
             
             return (
               <div key={visit.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 border-white shadow-md ring-1 ring-neutral-100 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-transform group-hover:scale-110 ${isPending ? 'bg-amber-50 text-amber-500' : 'bg-white text-neutral-400'}`}>
+                <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 border-white shadow-md ring-1 ring-neutral-100 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-transform group-hover:scale-105 ${isPending ? 'bg-amber-50 text-amber-500' : 'bg-white text-neutral-400'}`}>
                   {isPending ? <Cloud className="w-3 h-3" /> : <span className="text-[9px] font-black tracking-tighter">{visitNumber}</span>}
                 </div>
 
@@ -96,9 +96,9 @@ export function VisitHistory({ patient }: VisitHistoryProps) {
                             <img 
                               src={visit.consultant_image_url} 
                               alt="Consultation Report" 
-                              className="w-full h-24 object-cover transition-transform group-hover/img:scale-110"
+                              className="w-full h-24 object-cover transition-transform group-hover/img:scale-105"
                             />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity duration-150 flex items-center justify-center">
                               <span className="text-white text-[10px] font-bold flex items-center gap-2">
                                 <ImageIcon className="w-4 h-4" /> Click to Expand
                               </span>
@@ -135,9 +135,9 @@ export function VisitHistory({ patient }: VisitHistoryProps) {
                         <img 
                           src={visit.meal_image_url} 
                           alt="Meal Delivery" 
-                          className="w-full h-24 object-cover transition-transform group-hover/meal:scale-110"
+                          className="w-full h-24 object-cover transition-transform group-hover/meal:scale-105"
                         />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/meal:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/meal:opacity-100 transition-opacity duration-150 flex items-center justify-center">
                           <span className="text-white text-[10px] font-bold">Meal Evidence</span>
                         </div>
                       </div>
@@ -172,7 +172,7 @@ export function VisitHistory({ patient }: VisitHistoryProps) {
 
         {activeImage && (
           <div 
-            className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in zoom-in duration-300"
+            className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in zoom-in duration-150"
             onClick={() => setActiveImage(null)}
           >
             <div className="relative max-w-5xl max-h-[90vh] w-full h-full flex items-center justify-center">

@@ -214,6 +214,8 @@ export type Database = {
           status: Database["public"]["Enums"]["patient_status"] | null
           symptoms: string[] | null
           updated_at: string | null
+          weight: number | null
+          bp: string | null
         }
         Insert: {
           blood_transfusions_count?: number | null
@@ -262,6 +264,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["patient_status"] | null
           symptoms?: string[] | null
           updated_at?: string | null
+          weight?: number | null
+          bp?: string | null
         }
         Update: {
           blood_transfusions_count?: number | null
@@ -310,6 +314,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["patient_status"] | null
           symptoms?: string[] | null
           updated_at?: string | null
+          weight?: number | null
+          bp?: string | null
         }
         Relationships: [
           {
@@ -467,6 +473,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["patient_status"]
           symptoms?: string[] | null
           updated_at?: string | null
+          weight?: number | null
+          bp?: string | null
           village?: string | null
         }
         Update: {
@@ -530,6 +538,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["patient_status"]
           symptoms?: string[] | null
           updated_at?: string | null
+          weight?: number | null
+          bp?: string | null
           village?: string | null
         }
         Relationships: [
@@ -583,6 +593,8 @@ export type Database = {
           preferred_language?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
+          weight?: number | null
+          bp?: string | null
         }
         Update: {
           assigned_districts?: string[] | null
@@ -593,6 +605,8 @@ export type Database = {
           preferred_language?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
+          weight?: number | null
+          bp?: string | null
         }
         Relationships: []
       }

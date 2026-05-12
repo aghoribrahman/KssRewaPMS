@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useMemo } from 'react';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
 import { Patient, UserProfile } from '../types';
@@ -127,45 +128,51 @@ export const useStore = create<AppState>()(
       })),
 
       // Logic
-      fetchPatients: async (districtFilter) => {
+      fetchPatients: async () => {
         set({ loading: true });
         try {
           // Query the new visits table and join with master
-          let query = supabase.from('patient_visits').select('*, patient_master(*)').order('created_at', { ascending: false });
-          
-          // Note: District is now on patient_master, so we need to filter on the joined table
-          // In Supabase, filtering joined tables requires inner join syntax if filtering out parents
-          // For simplicity in offline mode, we'll fetch all and filter in memory if district filter is present
-          const { data, error } = await query;
+          // We fetch everything to support offline filtering later
+          const { data, error } = await supabase
+            .from('patient_visits')
+            .select('*, patient_master(*)')
+            .order('created_at', { ascending: false })
+            .limit(200); // Senior Fix: Prevent unbounded memory growth
+            
           if (error) throw error;
           
           // Flatten the data to match the legacy 'Patient' interface for the UI components
-          let flattenedData = (data as any[]).map(v => ({
-            ...v,
-            ...v.patient_master,
-            id: v.id, // Keep the visit ID as the primary ID for the UI
-            master_patient_id: v.patient_master.id,
-            district: v.patient_master.district,
-            name: v.patient_master.name,
-            contact: v.patient_master.contact,
-            age: v.patient_master.age,
-            gender: v.patient_master.gender,
-            address: v.patient_master.address,
-            block: v.patient_master.block,
-            village: v.patient_master.village,
-            abha_id: v.patient_master.abha_id,
-            aadhar_number: v.patient_master.aadhar_number,
-            sickle_cell_status: v.patient_master.sickle_cell_status,
-            pre_existing_diagnosis: v.patient_master.pre_existing_diagnosis,
-            date_of_diagnosis: v.patient_master.date_of_diagnosis
-          }));
+          const flattenedData = (data as any[]).map(v => {
+            // Defensive check for patient_master (could be object or array depending on PostgREST version/schema)
+            const master = Array.isArray(v.patient_master) ? v.patient_master[0] : v.patient_master;
+            
+            if (!master) {
+              console.warn(`Visit ${v.id} has no associated patient_master record.`);
+              return v;
+            }
 
-          // Apply district filter in memory since joining with filter is complex in simple JS
-          if (districtFilter && districtFilter.length > 0) {
-            flattenedData = flattenedData.filter(p => districtFilter.includes(p.district));
-          }
+            return {
+              ...v,
+              ...master,
+              id: v.id, // Keep the visit ID as the primary ID for the UI
+              master_patient_id: master.id,
+              district: master.district,
+              name: master.name,
+              contact: master.contact,
+              age: master.age,
+              gender: master.gender,
+              address: master.address,
+              block: master.block,
+              village: master.village,
+              abha_id: master.abha_id,
+              aadhar_number: master.aadhar_number,
+              sickle_cell_status: master.sickle_cell_status,
+              pre_existing_diagnosis: master.pre_existing_diagnosis,
+              date_of_diagnosis: master.date_of_diagnosis
+            };
+          });
 
-          set({ patients: flattenedData as Patient[], loading: false });
+          set({ patients: flattenedData as Patient[], lastFetched: new Date().toISOString(), loading: false });
         } catch (err) {
           console.error('Fetch failed:', err);
           set({ loading: false });
@@ -325,35 +332,45 @@ export const useStore = create<AppState>()(
 /**
  * Selector that merges server-side patients with pending local updates/inserts
  * to provide a 100% optimistic UI experience.
+ * Memoized to prevent redundant calculations on re-renders.
  */
-export const useUnifiedPatients = () => {
+export const useUnifiedPatients = (districtFilter?: string[]) => {
   const patients = useStore((state) => state.patients);
   const pendingSync = useStore((state) => state.pendingSync);
 
-  // 1. Start with the server patients
-  let unified = [...patients];
+  return useMemo(() => {
+    // 1. Start with the server patients
+    let unified = [...patients];
 
-  // 2. Apply pending updates (exclude permanently failed ghost updates)
-  pendingSync
-    .filter(i => i.type === 'UPDATE' && !(i.status === 'FAILED' && i.retryCount >= 3))
-    .forEach(update => {
-    const idx = unified.findIndex(p => p.id === update.patientId);
-    if (idx !== -1) {
-      unified[idx] = { ...unified[idx], ...update.data };
+    // 2. Apply pending updates (exclude permanently failed ghost updates)
+    pendingSync
+      .filter(i => i.type === 'UPDATE' && !(i.status === 'FAILED' && i.retryCount >= 3))
+      .forEach(update => {
+      const idx = unified.findIndex(p => p.id === update.patientId);
+      if (idx !== -1) {
+        unified[idx] = { ...unified[idx], ...update.data };
+      }
+    });
+
+    // 3. Prepended pending inserts
+    const pendingInserts = pendingSync
+      .filter(i => i.type === 'INSERT')
+      .map(insert => ({
+        ...insert.data,
+        id: insert.id, // Temporary ID
+        created_at: insert.timestamp,
+        status: insert.data.status || 'pending_consultation',
+      } as Patient));
+
+    let result = [...pendingInserts, ...unified];
+
+    // 4. Apply district filtering globally to both synced and pending data
+    if (districtFilter && districtFilter.length > 0) {
+      result = result.filter(p => districtFilter.includes(p.district));
     }
-  });
 
-  // 3. Prepended pending inserts
-  const pendingInserts = pendingSync
-    .filter(i => i.type === 'INSERT')
-    .map(insert => ({
-      ...insert.data,
-      id: insert.id, // Temporary ID
-      created_at: insert.timestamp,
-      status: insert.data.status || 'pending_consultation',
-    } as Patient));
-
-  return [...pendingInserts, ...unified];
+    return result;
+  }, [patients, pendingSync, districtFilter]);
 };
 
 export const useSyncStatus = () => {

@@ -133,13 +133,13 @@ export function PatientSummary({ patient, className }: PatientSummaryProps) {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {sections.map((section) => (
           <SummaryCard key={section.title} {...section} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {/* Medication Summary */}
         <Card className="border-neutral-100 shadow-sm">
           <div className="px-3 py-2 border-b bg-amber-50 flex items-center gap-2">
@@ -179,33 +179,33 @@ export function PatientSummary({ patient, className }: PatientSummaryProps) {
         </Card>
       </div>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-3">
         <Badge 
           variant="outline" 
           className={cn(
-            "gap-1 px-3 py-1 border-none",
+            "gap-1 px-3 py-1.5 border-none text-[10px] sm:text-xs",
             patient.meal_served_at || patient.nutrition_kit_distributed ? "bg-emerald-100 text-emerald-700" :
             patient.meal_required ? "bg-amber-100 text-amber-700" : "bg-neutral-100 text-neutral-400"
           )}
         >
-          <Package className="w-3 h-3" />
-          Nutrition Meal Box: {
+          <Package className="w-3 h-3 sm:w-4 sm:h-4" />
+          Nutrition: {
             patient.meal_served_at 
               ? `Delivered (${formatTime(patient.meal_served_at)})` 
               : patient.nutrition_kit_distributed 
-                ? `Delivered (${patient.nutrition_kit_date})`
+                ? `Kit Delivered (${patient.nutrition_kit_date})`
                 : patient.meal_required ? 'Required' : 'Not Needed'
           }
         </Badge>
-        <Badge variant="outline" className="gap-1 px-3 py-1 bg-neutral-100 text-neutral-700 border-none">
-          <ClipboardCheck className="w-3 h-3" />
-          Feedback Confirm: {patient.feedback_confirmation ? 'Yes' : 'No'}
+        <Badge variant="outline" className="gap-1 px-3 py-1.5 bg-neutral-100 text-neutral-700 border-none text-[10px] sm:text-xs">
+          <ClipboardCheck className="w-3 h-3 sm:w-4 sm:h-4" />
+          Feedback: {patient.feedback_confirmation ? 'Yes' : 'No'}
         </Badge>
       </div>
 
       <div className="mt-8 pt-6 border-t border-neutral-100">
-        <h3 className="text-xs font-black text-neutral-400 uppercase tracking-[0.2em] mb-4">Clinical Chain of Custody</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <h3 className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] mb-4">Chain of Custody</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <ChainItem icon={UserCheck} color="blue" label="Registrar" name={patient.registrar_name} />
           <ChainItem icon={Stethoscope} color="amber" label="Consultant" name={patient.consultant_name} />
           <ChainItem icon={Utensils} color="emerald" label="Meal Server" name={patient.meal_distributor_name} placeholder={patient.meal_required ? 'Pending...' : 'N/A'} />

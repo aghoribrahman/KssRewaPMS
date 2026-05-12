@@ -20,6 +20,7 @@ export const PatientSchema = z.object({
   village: z.string().min(1, 'Village is required'),
   abha_id: z.string().optional(),
   aadhar_number: z.string().regex(/^\d{12}$/, 'Aadhar must be 12 digits').optional().or(z.literal('')),
+  registrar_image_url: z.string().optional(),
   
   // Medical Information
   sickle_cell_status: z.enum(['SS', 'AS', 'AA']).default('AS'),
@@ -32,6 +33,8 @@ export const PatientSchema = z.object({
   previous_hospitalizations: z.boolean().default(false),
   blood_transfusions_count: z.coerce.number().min(0).default(0),
   other_health_issues: z.string().optional(),
+  weight: z.coerce.number().min(0).max(500).optional(),
+  bp: z.string().optional(),
 
   // Present Symptoms
   symptoms: z.array(z.string()).default([]),
@@ -61,9 +64,12 @@ export const PatientSchema = z.object({
   // Referral
   referral: z.array(z.string()).default([]),
 
-  // Feedback
+  // Workflow Status
+  status: z.enum(['pending_consultation', 'pending_meal', 'complete']).default('pending_consultation'),
+
   feedback_confirmation: z.boolean().default(false),
   specific_concerns: z.string().optional(),
+  meal_required: z.boolean().default(true),
 });
 
 export type PatientFormData = z.infer<typeof PatientSchema>;

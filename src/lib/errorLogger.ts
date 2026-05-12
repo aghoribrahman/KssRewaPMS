@@ -85,11 +85,8 @@ export async function logError({ message, stack, componentStack, userId, state }
         error_message: payload.message,
         error_stack: payload.stack,
         component_stack: payload.componentStack,
-        device_info: payload.deviceInfo,
         app_state_snapshot: payload.appState,
-        // Breadcrumbs could be added to device_info or a new column
-        // For now, we'll merge them into deviceInfo
-        device_info: { ...deviceInfo, breadcrumbs: payload.breadcrumbs }
+        device_info: { ...payload.deviceInfo, breadcrumbs: payload.breadcrumbs }
       });
 
       if (!error) return; // Success

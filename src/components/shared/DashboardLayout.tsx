@@ -8,7 +8,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, isImmersive = false }: DashboardLayoutProps) {
   return (
-    <main className={`flex-1 w-full mx-auto transition-all duration-300 ${isImmersive ? 'p-2 max-w-full' : 'max-w-7xl p-4 md:p-8'}`}>
+    <main className={`flex-1 w-full mx-auto transition-all duration-150 ${isImmersive ? 'p-2 max-w-full' : 'max-w-7xl p-4 md:p-8'}`}>
       <AnimatePresence mode="wait">
         <motion.div
           initial={{ opacity: 0, y: 10 }}

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Patient } from '../../types';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { X, Activity, FileText, Zap } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PatientSummary } from '../PatientSummary';
 import { CounsellingForm } from '../CounsellingForm';
@@ -47,17 +47,17 @@ export function PatientDetailsDialog({
             <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 overflow-hidden">
               <DialogTitle className="text-base md:text-lg font-bold tracking-tight truncate">{patient?.name || title}</DialogTitle>
               <div className="hidden md:block h-3 w-px bg-white/20" />
-              <p className="text-neutral-500 text-[9px] md:text-[10px] font-bold uppercase tracking-widest truncate">
-                {subtitle || (lang === 'en' ? "Patient Record" : "मरीज रिकॉर्ड")}
+              <p className="text-neutral-400 text-[9px] md:text-[10px] font-bold uppercase tracking-widest truncate">
+                {subtitle || t.patientRecord}
               </p>
             </div>
             <Button 
               variant="ghost"
               size="icon"
-              className="text-white hover:bg-white/10 rounded-full h-10 w-10"
+              className="text-white hover:bg-white/10 rounded-full h-8 w-8 md:h-10 md:w-10"
               onClick={onClose}
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 md:w-5 md:h-5" />
             </Button>
           </div>
 
@@ -65,15 +65,18 @@ export function PatientDetailsDialog({
             <Tabs defaultValue="summary" className="w-full flex-1 flex flex-col min-h-0">
               <div className="px-4 md:px-8 py-1.5 bg-neutral-50/50 border-b border-neutral-100 flex items-center justify-between overflow-x-auto scrollbar-hide">
                 <TabsList className="flex gap-1.5 md:gap-2 rounded-full h-auto bg-neutral-200/50 p-1 border-none justify-start w-fit flex-nowrap">
-                  <TabsTrigger value="summary" className="rounded-full data-active:bg-white data-active:text-primary data-active:shadow-sm bg-transparent transition-all font-bold px-4 md:px-5 py-1.5 md:py-2 text-[10px] md:text-xs whitespace-nowrap uppercase tracking-wider">
-                    {lang === 'en' ? "Summary" : "सारांश"}
+                  <TabsTrigger value="summary" className="rounded-full data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm bg-transparent transition-all font-bold px-4 md:px-5 py-1.5 md:py-2 text-[10px] md:text-xs whitespace-nowrap uppercase tracking-wider">
+                    <Activity className="w-3.5 h-3.5 mr-2 hidden md:block" />
+                    {t.summary}
                   </TabsTrigger>
-                  <TabsTrigger value="form" className="rounded-full data-active:bg-white data-active:text-primary data-active:shadow-sm bg-transparent transition-all font-bold px-4 md:px-5 py-1.5 md:py-2 text-[10px] md:text-xs whitespace-nowrap uppercase tracking-wider">
-                    {lang === 'en' ? "Details" : "विवरण"}
+                  <TabsTrigger value="form" className="rounded-full data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm bg-transparent transition-all font-bold px-4 md:px-5 py-1.5 md:py-2 text-[10px] md:text-xs whitespace-nowrap uppercase tracking-wider">
+                    <FileText className="w-3.5 h-3.5 mr-2 hidden md:block" />
+                    {t.details}
                   </TabsTrigger>
                   {actionContent && (
-                    <TabsTrigger value="action" className="rounded-full data-active:bg-white data-active:text-primary data-active:shadow-sm bg-transparent transition-all font-bold px-4 md:px-5 py-1.5 md:py-2 text-[10px] md:text-xs whitespace-nowrap uppercase tracking-wider">
-                      {actionTabTitle || (lang === 'en' ? "Action" : "कार्रवाई")}
+                    <TabsTrigger value="action" className="rounded-full data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm bg-transparent transition-all font-bold px-4 md:px-5 py-1.5 md:py-2 text-[10px] md:text-xs whitespace-nowrap uppercase tracking-wider">
+                      <Zap className="w-3.5 h-3.5 mr-2 hidden md:block" />
+                      {actionTabTitle || t.action}
                     </TabsTrigger>
                   )}
                 </TabsList>

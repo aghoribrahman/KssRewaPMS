@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Patient } from '../../types';
 import { usePatients } from '../../hooks/usePatients';
@@ -15,9 +15,9 @@ import { PatientDirectory } from '../shared/PatientDirectory';
 import { PatientDetailsDialog } from '../shared/PatientDetailsDialog';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
 import { usePatientActions } from '../../hooks/usePatientActions';
-import { useTranslation } from '../../hooks/useTranslation';
 import { getTimeGreeting } from '../../lib/dateUtils';
 import { getSharedPatientColumns } from '../shared/PatientColumns';
+import { useDashboardHelper } from '../../hooks/useDashboardHelper';
 
 interface RegistrarDashboardProps {
   onImmersiveChange?: (immersive: boolean) => void;
@@ -25,13 +25,20 @@ interface RegistrarDashboardProps {
 
 export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashboardProps) {
   const { profile } = useAuth();
-  const { lang, t } = useTranslation();
   const { patients, isOffline, isSyncing, pendingCount } = usePatients({ limit: 50, realtime: true });
   const { registerPatient } = usePatientActions();
   
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [autoFillSuggested, setAutoFillSuggested] = useState(false);
+  const {
+    selectedPatient,
+    setSelectedPatient,
+    handleUpdatePatient,
+    closeDialog,
+    lang,
+    t
+  } = useDashboardHelper();
+
+  const [isRegistering, setIsRegistering] = React.useState(false);
+  const [autoFillSuggested, setAutoFillSuggested] = React.useState(false);
 
   const stats = useDashboardStats({ patients, role: 'registrar', lang });
 
@@ -52,7 +59,7 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
     previous_hospitalizations: false,
   };
 
-  const [formData, setFormData] = useState<Partial<Patient>>(initialFormData);
+  const [formData, setFormData] = React.useState<Partial<Patient>>(initialFormData);
 
   // Auto-fill logic
   useEffect(() => {
@@ -60,7 +67,7 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
       const existingPatient = patients.find(p => p.contact === formData.contact);
       if (existingPatient) {
         const masterId = existingPatient.master_patient_id || existingPatient.id;
-        toast.info(lang === 'en' ? `Returning patient found!` : `पुराना मरीज मिला!`);
+        toast.info(t.returningPatientFound);
         setFormData(prev => ({
           ...prev,
           name: existingPatient.name,
@@ -82,22 +89,23 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
     if (formData.contact && formData.contact.length < 5) {
       setAutoFillSuggested(false);
     }
-  }, [formData.contact, patients, autoFillSuggested, lang]);
+  }, [formData.contact, patients, autoFillSuggested, t]);
 
   const handleContactChange = React.useCallback((c: string) => {
     setFormData(prev => prev.contact === c ? prev : { ...prev, contact: c });
   }, []);
 
-  const handleRegister = (data: PatientFormData) => {
+  const handleRegister = (data: any) => {
     registerPatient(data);
     toast.success(lang === 'en' ? "Registration queued!" : "पंजीकरण कतार में!");
     setIsRegistering(false);
     setAutoFillSuggested(false);
+    setFormData(initialFormData);
   };
 
   const columns = useMemo(() => 
     getSharedPatientColumns(t, setSelectedPatient, lang), 
-  [t, lang]);
+  [t, lang, setSelectedPatient]);
 
   return (
     <DashboardLayout isImmersive={isRegistering}>
@@ -117,9 +125,9 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
               }`}
           >
             {isRegistering ? (
-              <><Search className="w-5 h-5" />{lang === 'en' ? "View Registrations" : "पंजीकरण देखें"}</>
+              <><Search className="w-5 h-5" />{t.viewRegistrations}</>
             ) : (
-              <><PlusCircle className="w-5 h-5" />{lang === 'en' ? "New Patient Registration" : "नया मरीज पंजीकरण"}</>
+              <><PlusCircle className="w-5 h-5" />{t.newRegistration}</>
             )}
           </Button>
         }
@@ -133,16 +141,16 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
             columns={columns}
             onPatientSelect={setSelectedPatient}
             lang={lang}
-            title={lang === 'en' ? "Patient Directory" : "मरीज निर्देशिका"}
+            title={t.patientDirectory}
             description={lang === 'en' ? "Manage and track recently registered patients." : "हाल ही में पंजीकृत मरीजों का प्रबंधन करें।"}
           />
         </>
       ) : (
-        <div className="animate-in fade-in duration-500 space-y-4">
+        <div className="animate-in fade-in duration-200 space-y-4">
           <Button variant="ghost" onClick={() => setIsRegistering(false)} className="group rounded-xl hover:bg-neutral-100 -ml-2">
             <ArrowLeft className="w-4 h-4 mr-2 text-neutral-400 group-hover:text-neutral-900 group-hover:-translate-x-1 transition-all" />
             <span className="text-xs font-bold text-neutral-500 group-hover:text-neutral-900 uppercase tracking-widest">
-              {lang === 'en' ? 'Back to Directory' : 'निर्देशिका पर वापस जाएं'}
+              {t.backToDirectory}
             </span>
           </Button>
 
@@ -150,8 +158,8 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
             <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl flex items-center gap-3">
               <History className="w-5 h-5 shrink-0" />
               <div>
-                <p className="font-bold text-sm">{lang === 'en' ? 'Returning Patient' : 'पुराना मरीज'}</p>
-                <p className="text-xs">{lang === 'en' ? 'Historical data loaded.' : 'पिछला डेटा लोड किया गया।'}</p>
+                <p className="font-bold text-sm">{t.returningPatient}</p>
+                <p className="text-xs">{t.historicalDataLoaded}</p>
               </div>
             </div>
           )}
@@ -162,27 +170,19 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
             onSubmit={handleRegister}
             onCancel={() => setIsRegistering(false)}
             submitLabel={t.confirmRegistration}
-            cancelLabel={lang === 'en' ? 'Cancel' : 'रद्द करें'}
+            cancelLabel={t.cancel}
           />
         </div>
       )}
 
       <PatientDetailsDialog 
         patient={selectedPatient}
-        onClose={() => setSelectedPatient(null)}
+        onClose={closeDialog}
         lang={lang}
         readOnly={false}
-        onFormSubmit={async (data) => {
-          if (!selectedPatient) return;
-          try {
-            registerPatient(data); // In registrar context, updating is essentially re-registering/upserting
-            toast.success(lang === 'en' ? "Patient record updated" : "मरीज का रिकॉर्ड अपडेट किया गया");
-            setSelectedPatient(prev => prev ? { ...prev, ...data } : null);
-          } catch (e) {
-            toast.error("Update failed");
-          }
-        }}
+        onFormSubmit={handleUpdatePatient}
       />
     </DashboardLayout>
   );
 }
+

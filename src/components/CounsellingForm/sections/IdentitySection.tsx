@@ -120,14 +120,26 @@ export function IdentitySection({ lang, readOnly, disabledFields = [] }: Section
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">ABHA ID / Aadhaar</Label>
-                  <Input 
-                    {...register('abha_id')}
-                    disabled={readOnly || disabledFields.includes('abha_id')}
-                    placeholder="Identification Number"
-                    className="rounded-xl h-10 md:h-11 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-sm font-medium"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">ABHA ID</Label>
+                    <Input 
+                      {...register('abha_id')}
+                      disabled={readOnly || disabledFields.includes('abha_id')}
+                      placeholder="ABHA Number"
+                      className="rounded-xl h-10 md:h-11 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-sm font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Aadhaar Number</Label>
+                    <Input 
+                      {...register('aadhar_number')}
+                      disabled={readOnly || disabledFields.includes('aadhar_number')}
+                      placeholder="12-digit Aadhaar"
+                      className={`rounded-xl h-10 md:h-11 border-neutral-100 bg-neutral-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all text-sm font-medium ${errors.aadhar_number ? 'border-red-500' : ''}`}
+                    />
+                    {errors.aadhar_number && <p className="text-[9px] text-red-500 font-bold ml-1">{errors.aadhar_number.message as string}</p>}
+                  </div>
                 </div>
               </div>
 

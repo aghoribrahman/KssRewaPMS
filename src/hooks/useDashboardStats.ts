@@ -12,7 +12,7 @@ interface UseDashboardStatsOptions {
 export function useDashboardStats({ patients, role, lang }: UseDashboardStatsOptions) {
   const t = TRANSLATIONS[lang];
 
-  const stats = useMemo(() => {
+  return useMemo(() => {
     const today = new Date().toDateString();
     
     const todayRegistrations = patients.filter(p => 
@@ -26,36 +26,34 @@ export function useDashboardStats({ patients, role, lang }: UseDashboardStatsOpt
     switch (role) {
       case 'admin':
         return [
-          { label: lang === 'en' ? 'Total Patients' : 'कुल मरीज', value: patients.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: lang === 'en' ? 'Active Queue' : 'सक्रिय कतार', value: pendingConsultations + pendingMeals, icon: Activity, color: 'text-orange-600', bg: 'bg-orange-50' },
-          { label: lang === 'en' ? 'Completed' : 'पूरा हुआ', value: completed, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
-          { label: lang === 'en' ? 'Efficiency' : 'दक्षता', value: '94%', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50' }
+          { label: t.totalPatients, value: patients.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: t.activeQueue, value: pendingConsultations + pendingMeals, icon: Activity, color: 'text-orange-600', bg: 'bg-orange-50' },
+          { label: t.completed, value: completed, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
+          { label: t.efficiency, value: '94%', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50' }
         ];
 
       case 'registrar':
         return [
-          { label: lang === 'en' ? "Total Patients" : "कुल मरीज", value: patients.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: lang === 'en' ? "Today's New" : "आज के नए", value: todayRegistrations, icon: PlusCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: lang === 'en' ? "Pending Consult" : "परामर्श लंबित", value: pendingConsultations, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
-          { label: lang === 'en' ? "Completed" : "पूर्ण", value: completed, icon: CheckCircle2, color: 'text-purple-600', bg: 'bg-purple-50' }
+          { label: t.totalPatients, value: patients.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: t.todayNew, value: todayRegistrations, icon: PlusCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: t.pendingConsult, value: pendingConsultations, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
+          { label: t.completed, value: completed, icon: CheckCircle2, color: 'text-purple-600', bg: 'bg-purple-50' }
         ];
 
       case 'consultant':
         return [
-          { label: lang === 'en' ? "Queue Size" : "कतार का आकार", value: pendingConsultations, icon: Activity, color: 'text-primary', bg: 'bg-primary/5' },
-          { label: lang === 'en' ? "Today's Reviews" : "आज की समीक्षाएं", value: patients.filter(p => p.consultant_id && p.updated_at && new Date(p.updated_at).toDateString() === today).length, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' }
+          { label: t.queueSize, value: pendingConsultations, icon: Activity, color: 'text-primary', bg: 'bg-primary/5' },
+          { label: t.todayReviews, value: patients.filter(p => p.consultant_id && p.updated_at && new Date(p.updated_at).toDateString() === today).length, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' }
         ];
 
       case 'meal_distributor':
         return [
-          { label: lang === 'en' ? "Pending Meals" : "लंबित भोजन", value: pendingMeals, icon: Activity, color: 'text-orange-600', bg: 'bg-orange-50' },
-          { label: lang === 'en' ? "Today's Served" : "आज परोसा गया", value: patients.filter(p => p.meal_distributor_id && p.meal_served_at && new Date(p.meal_served_at).toDateString() === today).length, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' }
+          { label: t.pendingMeals, value: pendingMeals, icon: Activity, color: 'text-orange-600', bg: 'bg-orange-50' },
+          { label: t.todayServed, value: patients.filter(p => p.meal_distributor_id && p.meal_served_at && new Date(p.meal_served_at).toDateString() === today).length, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' }
         ];
 
       default:
         return [];
     }
-  }, [patients, role, lang]);
-
-  return stats;
+  }, [patients, role, t]);
 }

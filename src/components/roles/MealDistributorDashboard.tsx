@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { Patient } from '../../types';
 import { usePatients } from '../../hooks/usePatients';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -20,20 +19,27 @@ import { useDashboardStats } from '../../hooks/useDashboardStats';
 import { usePatientActions } from '../../hooks/usePatientActions';
 import { ImageUpload } from '../ImageUpload';
 import { useDashboardState } from '../../hooks/useDashboardState';
-import { useTranslation } from '../../hooks/useTranslation';
 import { formatTime } from '../../lib/dateUtils';
 import { StatusBadge } from '../shared/StatusBadge';
+import { useDashboardHelper } from '../../hooks/useDashboardHelper';
 
 export default function MealDistributorDashboard() {
   const { profile } = useAuth();
-  const { lang, t } = useTranslation();
   const { patients, isOffline, isSyncing, pendingCount } = usePatients({ status: 'pending_meal', realtime: true });
   const { serveMeal } = usePatientActions();
 
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [mealNotes, setMealNotes] = useState('');
-  const [mealImage, setMealImage] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const {
+    selectedPatient,
+    setSelectedPatient,
+    handleUpdatePatient,
+    closeDialog,
+    lang,
+    t
+  } = useDashboardHelper();
+
+  const [mealNotes, setMealNotes] = React.useState('');
+  const [mealImage, setMealImage] = React.useState('');
+  const [submitting, setSubmitting] = React.useState(false);
 
   // Reset review state when patient changes
   useEffect(() => {
@@ -76,7 +82,7 @@ export default function MealDistributorDashboard() {
   return (
     <DashboardLayout>
       <DashboardHeader
-        title={lang === 'en' ? 'Meal Distribution' : 'भोजन वितरण'}
+        title={t.mealDistribution}
         subtitle="Service delivery for Kiran Seva Sansthan patients."
         role="Meal Distributor"
         lang={lang}
@@ -88,7 +94,7 @@ export default function MealDistributorDashboard() {
           profile?.role !== 'admin' && profile?.assigned_districts && (
             <div className="flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-xl border border-primary/10">
               <MapPin className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-tight">Districts: {profile.assigned_districts.join(', ')}</span>
+              <span className="text-xs font-bold uppercase tracking-tight">{t.myDistricts}: {profile.assigned_districts.join(', ')}</span>
             </div>
           )
         }
@@ -127,16 +133,16 @@ export default function MealDistributorDashboard() {
                 <div className="p-4 bg-neutral-50 rounded-2xl space-y-3">
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="w-4 h-4 text-neutral-400" />
-                    <span className="font-medium text-neutral-600">Added: {formatTime(p.created_at)}</span>
+                    <span className="font-medium text-neutral-600">{t.timeAdded}: {formatTime(p.created_at)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-neutral-500 italic">
                     <User className="w-4 h-4 text-neutral-400" />
-                    <span>Age: {p.age}y</span>
+                    <span>{t.age}: {p.age}y</span>
                   </div>
                 </div>
                 <Button className="w-full rounded-xl h-12 gap-2 font-bold" onClick={() => setSelectedPatient(p)}>
                   <Utensils className="w-4 h-4" />
-                  {lang === 'en' ? "Confirm Delivery" : "वितरण की पुष्टि करें"}
+                  {t.confirmDelivery}
                 </Button>
               </CardContent>
             </Card>
@@ -155,10 +161,11 @@ export default function MealDistributorDashboard() {
 
       <PatientDetailsDialog
         patient={selectedPatient}
-        onClose={() => setSelectedPatient(null)}
+        onClose={closeDialog}
         lang={lang}
-        subtitle={lang === 'en' ? "Verify & Distribute Nutrition Kit/Meal" : "पोषण किट/भोजन वितरित करें"}
-        actionTabTitle={lang === 'en' ? "Meal Delivery" : "भोजन वितरण"}
+        subtitle={t.mealDeliveryAudit}
+        actionTabTitle={t.mealDistribution}
+        onFormSubmit={handleUpdatePatient}
         actionContent={
           <div className="space-y-6">
             <div className="grid grid-cols-1 gap-8">
@@ -191,3 +198,4 @@ export default function MealDistributorDashboard() {
     </DashboardLayout>
   );
 }
+

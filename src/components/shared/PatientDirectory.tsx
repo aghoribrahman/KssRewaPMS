@@ -38,8 +38,8 @@ export function PatientDirectory({
 
   return (
     <GenericTable
-      title={title || (lang === 'en' ? "Patient Directory" : "मरीज निर्देशिका")}
-      description={description || (lang === 'en' ? "Manage and track patient records." : "मरीज के रिकॉर्ड प्रबंधित करें।")}
+      title={title || t.patientDirectory}
+      description={description || lang === 'en' ? "Manage and track patient records." : "मरीज के रिकॉर्ड प्रबंधित करें।"}
       data={paginatedPatients}
       columns={columns}
       searchQuery={searchQuery}

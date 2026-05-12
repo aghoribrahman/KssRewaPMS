@@ -39,7 +39,7 @@ export default function VisitorDashboard() {
           profile?.assigned_districts && profile.assigned_districts.length > 0 && (
             <div className="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-xl border border-blue-100">
               <MapPin className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-tight">Scope: {profile.assigned_districts.join(', ')}</span>
+              <span className="text-xs font-bold uppercase tracking-tight">{t.myDistricts}: {profile.assigned_districts.join(', ')}</span>
             </div>
           )
         }
@@ -52,8 +52,8 @@ export default function VisitorDashboard() {
         columns={columns}
         onPatientSelect={setSelectedPatient}
         lang={lang}
-        title={lang === 'en' ? "Patient Directory (Read-Only)" : "मरीज निर्देशिका (केवल पढ़ने के लिए)"}
-        description={lang === 'en' ? "View real-time progress across districts." : "जिलों में रीअल-टाइम प्रगति देखें।"}
+        title={t.patientDirectory}
+        description={t.realtimeProgress}
       />
 
       <PatientDetailsDialog 

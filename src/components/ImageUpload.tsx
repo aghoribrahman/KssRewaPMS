@@ -61,10 +61,10 @@ export function ImageUpload({ onUploadComplete, folder, label = "Upload Image" }
 
   return (
     <div className="space-y-4">
-      <div className="group relative flex flex-col items-center justify-center border-2 border-dashed border-neutral-200 rounded-[2rem] p-10 bg-neutral-50/50 hover:bg-white hover:border-primary/30 transition-all duration-500 overflow-hidden">
+      <div className="group relative flex flex-col items-center justify-center border-2 border-dashed border-neutral-200 rounded-[2rem] p-10 bg-neutral-50/50 hover:bg-white hover:border-primary/30 transition-all duration-200 overflow-hidden">
         {preview ? (
           <div className="relative group/preview overflow-hidden rounded-2xl premium-shadow">
-            <img src={preview} alt="Upload preview" className="max-h-64 rounded-2xl object-cover transition-transform duration-700 group-hover/preview:scale-110" />
+            <img src={preview} alt="Upload preview" className="max-h-64 rounded-2xl object-cover transition-transform duration-200 group-hover/preview:scale-105" />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
                <Button 
                  variant="secondary" 
@@ -77,7 +77,7 @@ export function ImageUpload({ onUploadComplete, folder, label = "Upload Image" }
           </div>
         ) : (
           <label className="cursor-pointer flex flex-col items-center gap-4 w-full">
-            <div className="w-20 h-20 bg-white rounded-[2rem] shadow-xl border border-neutral-100 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+            <div className="w-20 h-20 bg-white rounded-[2rem] shadow-xl border border-neutral-100 flex items-center justify-center mb-2 group-hover:scale-105 group-hover:rotate-3 transition-all duration-200">
               <Camera className="w-10 h-10 text-primary" />
             </div>
             <div className="text-center space-y-1">
@@ -95,7 +95,7 @@ export function ImageUpload({ onUploadComplete, folder, label = "Upload Image" }
       </div>
 
       {uploading && (
-        <div className="flex items-center justify-center gap-3 text-base font-black text-primary bg-primary/5 p-5 rounded-2xl border border-primary/10 animate-pulse">
+        <div className="flex items-center justify-center gap-3 text-base font-black text-primary bg-primary/5 p-5 rounded-2xl border border-primary/10">
           <Loader2 className="w-5 h-5 animate-spin" />
           <span>Syncing with Cloud Storage...</span>
         </div>
