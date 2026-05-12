@@ -1,11 +1,11 @@
-import * as React from 'react';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
-import { Heart, ClipboardCheck } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { PatientFormData } from '../../../lib/schemas';
 import { ImageUpload } from '../../ImageUpload';
@@ -13,12 +13,13 @@ import { ImageUpload } from '../../ImageUpload';
 interface SectionProps {
   lang: 'en' | 'hi';
   readOnly?: boolean;
-  disabledFields?: string[];
+  disabledFields?: any[];
+  hiddenFields?: any[];
 }
 
 const RequiredBadge = () => <span className="text-red-500 ml-1 font-bold">*</span>;
 
-export function SupportSection({ lang, readOnly, disabledFields = [] }: SectionProps) {
+export function SupportSection({ lang, readOnly, hiddenFields = [] }: SectionProps) {
   const { register, control, watch, setValue, formState: { errors } } = useFormContext<PatientFormData>();
   const selectedTopics = watch('counselling_topics') || [];
 
@@ -84,40 +85,42 @@ export function SupportSection({ lang, readOnly, disabledFields = [] }: SectionP
             {errors.registrar_image_url && <p className="text-[9px] text-red-500 font-bold ml-1">{errors.registrar_image_url.message as string}</p>}
           </div>
 
-          <div className="md:col-span-2 space-y-3 pt-3 border-t border-neutral-50">
-             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Topics Discussed / Counselling</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {[
-                  'Basic information on SCD',
-                  'Symptom identification',
-                  'Importance of Diet',
-                  'Regular check-ups',
-                  'Medication regularity',
-                  'Nutrition Kit instructions'
-                ].map((topic) => (
-                  <label key={topic} className={`flex items-center space-x-2 p-2 rounded-lg border transition-all ${
-                    selectedTopics.includes(topic) ? 'bg-amber-50 border-amber-200' : 'bg-neutral-50 border-neutral-100 hover:bg-white'
-                  }`}>
-                    <Checkbox 
-                      checked={selectedTopics.includes(topic)}
-                      onCheckedChange={(checked) => {
-                        const current = [...selectedTopics];
-                        if (checked) {
-                          setValue('counselling_topics', [...current, topic]);
-                        } else {
-                          setValue('counselling_topics', current.filter(t => t !== topic));
-                        }
-                      }}
-                      disabled={readOnly}
-                      className="w-3.5 h-3.5"
-                    />
-                    <span className="text-[10px] font-bold text-neutral-700">{topic}</span>
-                  </label>
-                ))}
+          {!hiddenFields.includes('counselling') && (
+            <div className="md:col-span-2 space-y-3 pt-3 border-t border-neutral-50">
+               <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Topics Discussed / Counselling</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    'Basic information on SCD',
+                    'Symptom identification',
+                    'Importance of Diet',
+                    'Regular check-ups',
+                    'Medication regularity',
+                    'Nutrition Kit instructions'
+                  ].map((topic) => (
+                    <label key={topic} className={`flex items-center space-x-2 p-2 rounded-lg border transition-all ${
+                      selectedTopics.includes(topic) ? 'bg-amber-50 border-amber-200' : 'bg-neutral-50 border-neutral-100 hover:bg-white'
+                    }`}>
+                      <Checkbox 
+                        checked={selectedTopics.includes(topic)}
+                        onCheckedChange={(checked) => {
+                          const current = [...selectedTopics];
+                          if (checked) {
+                            setValue('counselling_topics', [...current, topic]);
+                          } else {
+                            setValue('counselling_topics', current.filter(t => t !== topic));
+                          }
+                        }}
+                        disabled={readOnly}
+                        className="w-3.5 h-3.5"
+                      />
+                      <span className="text-[10px] font-bold text-neutral-700">{topic}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="md:col-span-2 space-y-2 pt-4 border-t border-neutral-50">
             <Label className="text-xs font-black uppercase tracking-widest text-neutral-400">Specific Concerns or Feedback</Label>

@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Patient, VisitHistoryItem } from '../../types';
-import { History, ClipboardCheck, Stethoscope, Utensils, Image as ImageIcon, Cloud, CloudOff } from 'lucide-react';
+import { Patient } from '../../types';
+import { History, Stethoscope, Utensils, Image as ImageIcon, Cloud, CloudOff } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { usePatientHistory } from '../../hooks/usePatientHistory';
-import { formatTime, formatDate } from '../lib/dateUtils';
+
 import { GlobalErrorBoundary } from './GlobalErrorBoundary';
 
 interface VisitHistoryProps {
@@ -65,7 +65,7 @@ export function VisitHistory({ patient }: VisitHistoryProps) {
                     <div className="flex flex-col">
                       <span className="text-xs font-black text-neutral-900 uppercase tracking-widest">{isFirstVisit ? 'Initial Registration' : `Follow-up Visit ${visitNumber}`}</span>
                       <div className="flex items-center gap-2 mt-1">
-                         <span className="text-[10px] font-bold text-neutral-400">{new Date(visit.created_at).toLocaleDateString(undefined, { dateStyle: 'full' })}</span>
+                         <span className="text-[10px] font-bold text-neutral-400">{new Date(visit.created_at || Date.now()).toLocaleDateString(undefined, { dateStyle: 'full' })}</span>
                          {isPending && (
                            <Badge variant="outline" className="text-[8px] font-black uppercase text-amber-600 bg-amber-50 border-amber-200 py-0 px-1.5 flex items-center gap-1">
                              <CloudOff className="w-2.5 h-2.5" /> Pending Sync

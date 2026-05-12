@@ -5,7 +5,7 @@ import { Patient } from '../../types';
 import { usePatients } from '../../hooks/usePatients';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { PlusCircle, Search, ArrowLeft, History } from 'lucide-react';
+import { PlusCircle, Search, ArrowLeft } from 'lucide-react';
 
 import { CounsellingForm } from '../CounsellingForm';
 import { DashboardLayout } from '../shared/DashboardLayout';
@@ -18,6 +18,8 @@ import { usePatientActions } from '../../hooks/usePatientActions';
 import { getTimeGreeting } from '../../lib/dateUtils';
 import { getSharedPatientColumns } from '../shared/PatientColumns';
 import { useDashboardHelper } from '../../hooks/useDashboardHelper';
+import { usePatientLookup } from '../../hooks/usePatientLookup';
+import { AutoFillDiff } from '../shared/AutoFillDiff';
 
 interface RegistrarDashboardProps {
   onImmersiveChange?: (immersive: boolean) => void;
@@ -26,6 +28,8 @@ interface RegistrarDashboardProps {
 export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashboardProps) {
   const { profile } = useAuth();
   const { patients, isOffline, isSyncing, pendingCount } = usePatients({ limit: 50, realtime: true });
+  const pendingConsultationPatients = useMemo(() => patients.filter(p => p.status !== 'needs_correction'), [patients]);
+  const needsCorrectionPatients = useMemo(() => patients.filter(p => p.status === 'needs_correction'), [patients]);
   const { registerPatient } = usePatientActions();
   
   const {
@@ -38,7 +42,7 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
   } = useDashboardHelper();
 
   const [isRegistering, setIsRegistering] = React.useState(false);
-  const [autoFillSuggested, setAutoFillSuggested] = React.useState(false);
+  const [diffDismissedForId, setDiffDismissedForId] = React.useState<string | null>(null);
 
   const stats = useDashboardStats({ patients, role: 'registrar', lang });
 
@@ -61,35 +65,38 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
 
   const [formData, setFormData] = React.useState<Partial<Patient>>(initialFormData);
 
-  // Auto-fill logic
-  useEffect(() => {
-    if (formData.contact?.length === 10 && !autoFillSuggested) {
-      const existingPatient = patients.find(p => p.contact === formData.contact);
-      if (existingPatient) {
-        const masterId = existingPatient.master_patient_id || existingPatient.id;
-        toast.info(t.returningPatientFound);
-        setFormData(prev => ({
-          ...prev,
-          name: existingPatient.name,
-          age: existingPatient.age,
-          gender: existingPatient.gender,
-          district: existingPatient.district,
-          block: existingPatient.block || '',
-          village: existingPatient.village || '',
-          address: existingPatient.address || '',
-          abha_id: existingPatient.abha_id || '',
-          aadhar_number: existingPatient.aadhar_number || '',
-          sickle_cell_status: existingPatient.sickle_cell_status,
-          previous_hospitalizations: existingPatient.previous_hospitalizations || false,
-          master_patient_id: masterId
-        }));
-        setAutoFillSuggested(true);
-      }
+  const { match } = usePatientLookup(
+    formData.contact || '', 
+    formData.aadhar_number || '', 
+    formData.abha_id || ''
+  );
+
+  const handleAcceptAllDiff = React.useCallback(() => {
+    if (!match) return;
+    toast.success(lang === 'en' ? "Master record loaded successfully" : "मास्टर रिकॉर्ड सफलतापूर्वक लोड किया गया");
+    setFormData(prev => ({
+      ...prev,
+      name: match.name,
+      age: match.age,
+      gender: match.gender as any,
+      district: match.district,
+      block: match.block || '',
+      village: match.village || '',
+      address: match.address || '',
+      abha_id: match.abha_id || '',
+      aadhar_number: match.aadhar_number || '',
+      sickle_cell_status: match.sickle_cell_status as any,
+      pre_existing_diagnosis: match.pre_existing_diagnosis || false,
+      date_of_diagnosis: match.date_of_diagnosis || undefined,
+      master_patient_id: match.id
+    }));
+  }, [match, lang]);
+
+  const handleDismissDiff = React.useCallback(() => {
+    if (match) {
+      setDiffDismissedForId(match.id);
     }
-    if (formData.contact && formData.contact.length < 5) {
-      setAutoFillSuggested(false);
-    }
-  }, [formData.contact, patients, autoFillSuggested, t]);
+  }, [match]);
 
   const handleContactChange = React.useCallback((c: string) => {
     setFormData(prev => prev.contact === c ? prev : { ...prev, contact: c });
@@ -99,7 +106,7 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
     registerPatient(data);
     toast.success(lang === 'en' ? "Registration queued!" : "पंजीकरण कतार में!");
     setIsRegistering(false);
-    setAutoFillSuggested(false);
+    setDiffDismissedForId(null);
     setFormData(initialFormData);
   };
 
@@ -134,17 +141,46 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
       />
 
       {!isRegistering ? (
-        <>
+        <div className="space-y-8">
           <StatGrid stats={stats} />
+
+          {needsCorrectionPatients.length > 0 && (
+            <div className="bg-orange-50/50 border border-orange-100 rounded-3xl p-4 md:p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-orange-950">
+                    {lang === 'en' ? "Returned for Correction" : "सुधार के लिए वापस किए गए"}
+                  </h3>
+                  <p className="text-xs text-orange-700">
+                    {lang === 'en' 
+                      ? "These records require updates before the consultant can review them." 
+                      : "परामर्शदाता द्वारा समीक्षा करने से पहले इन रिकॉर्ड्स में अपडेट की आवश्यकता है।"}
+                  </p>
+                </div>
+                <span className="bg-orange-500 text-white text-xs font-black px-3 py-1 rounded-full">
+                  {needsCorrectionPatients.length}
+                </span>
+              </div>
+              <PatientDirectory 
+                patients={needsCorrectionPatients}
+                columns={columns}
+                onPatientSelect={setSelectedPatient}
+                lang={lang}
+                title=""
+                description=""
+              />
+            </div>
+          )}
+
           <PatientDirectory 
-            patients={patients}
+            patients={pendingConsultationPatients}
             columns={columns}
             onPatientSelect={setSelectedPatient}
             lang={lang}
             title={t.patientDirectory}
             description={lang === 'en' ? "Manage and track recently registered patients." : "हाल ही में पंजीकृत मरीजों का प्रबंधन करें।"}
           />
-        </>
+        </div>
       ) : (
         <div className="animate-in fade-in duration-200 space-y-4">
           <Button variant="ghost" onClick={() => setIsRegistering(false)} className="group rounded-xl hover:bg-neutral-100 -ml-2">
@@ -154,14 +190,13 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
             </span>
           </Button>
 
-          {autoFillSuggested && (
-            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl flex items-center gap-3">
-              <History className="w-5 h-5 shrink-0" />
-              <div>
-                <p className="font-bold text-sm">{t.returningPatient}</p>
-                <p className="text-xs">{t.historicalDataLoaded}</p>
-              </div>
-            </div>
+          {match && match.id !== diffDismissedForId && formData.master_patient_id !== match.id && (
+            <AutoFillDiff 
+              existingRecord={match}
+              lang={lang}
+              onAcceptAll={handleAcceptAllDiff}
+              onDismiss={handleDismissDiff}
+            />
           )}
 
           <CounsellingForm
@@ -171,6 +206,7 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
             onCancel={() => setIsRegistering(false)}
             submitLabel={t.confirmRegistration}
             cancelLabel={t.cancel}
+            hiddenFields={['counselling']}
           />
         </div>
       )}
@@ -179,8 +215,26 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
         patient={selectedPatient}
         onClose={closeDialog}
         lang={lang}
-        readOnly={false}
-        onFormSubmit={handleUpdatePatient}
+        readOnly={selectedPatient?.status !== 'needs_correction'}
+        disabledFields={['abha_id', 'aadhar_number']}
+        onFormSubmit={(data) => {
+          handleUpdatePatient({ ...data, status: 'pending_consultation' });
+          closeDialog();
+        }}
+        subtitle={selectedPatient?.status === 'needs_correction' ? (lang === 'en' ? "Correction Required" : "सुधार आवश्यक") : undefined}
+        actionTabTitle={selectedPatient?.status === 'needs_correction' ? (lang === 'en' ? "Consultant Feedback" : "परामर्शदाता की प्रतिक्रिया") : undefined}
+        actionContent={
+          selectedPatient?.status === 'needs_correction' ? (
+            <div className="bg-orange-50 border border-orange-200 p-4 rounded-2xl space-y-2">
+              <p className="text-xs font-bold text-orange-800 uppercase tracking-wider">
+                {lang === 'en' ? "Reason for Rejection / Return" : "अस्वीकृति / वापसी का कारण"}
+              </p>
+              <p className="text-sm text-orange-900 font-medium whitespace-pre-wrap">
+                {selectedPatient.consultant_advice || (lang === 'en' ? "No specific notes provided." : "कोई विशिष्ट नोट्स प्रदान नहीं किए गए।")}
+              </p>
+            </div>
+          ) : undefined
+        }
       />
     </DashboardLayout>
   );

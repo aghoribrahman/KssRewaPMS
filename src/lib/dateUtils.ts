@@ -1,4 +1,3 @@
-import { Language } from '../hooks/useTranslation';
 import { TRANSLATIONS } from '../constants/mp_data';
 
 /**

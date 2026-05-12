@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { MapPin, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../hooks/useAuth';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PatientSchema, PatientFormData } from '../lib/schemas';
 
@@ -14,13 +14,14 @@ import { SupportSection } from './CounsellingForm/sections/SupportSection';
 
 interface CounsellingFormProps {
   data: Partial<Patient>;
-  onSubmit?: (data: PatientFormData) => void;
+  onSubmit?: SubmitHandler<PatientFormData>;
   onCancel?: () => void;
   onContactChange?: (contact: string) => void;
   submitLabel?: string;
   cancelLabel?: string;
   readOnly?: boolean;
-  disabledFields?: string[];
+  disabledFields?: any[];
+  hiddenFields?: any[];
 }
 
 export function CounsellingForm({ 
@@ -31,17 +32,18 @@ export function CounsellingForm({
   submitLabel = 'Confirm Registration',
   cancelLabel = 'Cancel',
   readOnly = false,
-  disabledFields = []
+  disabledFields = [],
+  hiddenFields = []
 }: CounsellingFormProps) {
   const { profile } = useAuth();
   const lang = (profile?.preferred_language as 'en' | 'hi') || 'hi';
 
   const methods = useForm<PatientFormData>({
-    resolver: zodResolver(PatientSchema),
+    resolver: zodResolver(PatientSchema) as any,
     defaultValues: data as PatientFormData,
   });
 
-  const { handleSubmit, reset, watch, formState: { isSubmitting, errors } } = methods;
+  const { handleSubmit, reset, watch, formState: { isSubmitting } } = methods;
   const contact = watch('contact');
   const lastContactRef = React.useRef(contact);
 
@@ -88,23 +90,26 @@ export function CounsellingForm({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-4 md:space-y-8 w-full pb-12">
+      <form onSubmit={handleSubmit(onSubmit as any, onInvalid)} className="space-y-4 md:space-y-8 w-full pb-12">
         <IdentitySection 
           lang={lang} 
           readOnly={readOnly} 
           disabledFields={disabledFields}
+          hiddenFields={hiddenFields}
         />
 
         <MedicalSection 
           lang={lang} 
           readOnly={readOnly} 
           disabledFields={disabledFields}
+          hiddenFields={hiddenFields}
         />
 
         <SupportSection 
           lang={lang} 
           readOnly={readOnly} 
           disabledFields={disabledFields}
+          hiddenFields={hiddenFields}
         />
 
         {!readOnly && (

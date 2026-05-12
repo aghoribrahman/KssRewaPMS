@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_errors: {
+        Row: {
+          id: string
+          user_id: string | null
+          error_message: string
+          error_stack: string | null
+          component_stack: string | null
+          app_state_snapshot: Json | null
+          device_info: Json | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          error_message: string
+          error_stack?: string | null
+          component_stack?: string | null
+          app_state_snapshot?: Json | null
+          device_info?: Json | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          error_message?: string
+          error_stack?: string | null
+          component_stack?: string | null
+          app_state_snapshot?: Json | null
+          device_info?: Json | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -212,10 +245,13 @@ export type Database = {
           reports_attached: boolean | null
           specific_concerns: string | null
           status: Database["public"]["Enums"]["patient_status"] | null
+          status_changed_at: string | null
+          status_changed_by: string | null
           symptoms: string[] | null
           updated_at: string | null
           weight: number | null
           bp: string | null
+          consultation_completed_at: string | null
         }
         Insert: {
           blood_transfusions_count?: number | null
@@ -262,10 +298,13 @@ export type Database = {
           reports_attached?: boolean | null
           specific_concerns?: string | null
           status?: Database["public"]["Enums"]["patient_status"] | null
+          status_changed_at?: string | null
+          status_changed_by?: string | null
           symptoms?: string[] | null
           updated_at?: string | null
           weight?: number | null
           bp?: string | null
+          consultation_completed_at?: string | null
         }
         Update: {
           blood_transfusions_count?: number | null
@@ -312,10 +351,13 @@ export type Database = {
           reports_attached?: boolean | null
           specific_concerns?: string | null
           status?: Database["public"]["Enums"]["patient_status"] | null
+          status_changed_at?: string | null
+          status_changed_by?: string | null
           symptoms?: string[] | null
           updated_at?: string | null
           weight?: number | null
           bp?: string | null
+          consultation_completed_at?: string | null
         }
         Relationships: [
           {
@@ -615,6 +657,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_patient_by_identity: {
+        Args: {
+          p_contact?: string | null
+          p_aadhar?: string | null
+          p_abha?: string | null
+        }
+        Returns: Database["public"]["Tables"]["patient_master"]["Row"][]
+      }
       get_auth_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
@@ -635,7 +685,12 @@ export type Database = {
     }
     Enums: {
       gender_type: "male" | "female" | "other"
-      patient_status: "pending_consultation" | "pending_meal" | "complete"
+      patient_status:
+        | "pending_consultation"
+        | "pending_meal"
+        | "complete"
+        | "needs_correction"
+        | "escalated"
       sickle_cell_status: "SS" | "AS" | "AA"
       user_role:
         | "admin"

@@ -81,12 +81,12 @@ export async function logError({ message, stack, componentStack, userId, state }
     // 3. Attempt immediate push if online
     if (navigator.onLine) {
       const { error } = await supabase.from('app_errors').insert({
-        user_id: payload.userId,
+        user_id: payload.userId || null,
         error_message: payload.message,
-        error_stack: payload.stack,
-        component_stack: payload.componentStack,
-        app_state_snapshot: payload.appState,
-        device_info: { ...payload.deviceInfo, breadcrumbs: payload.breadcrumbs }
+        error_stack: payload.stack || null,
+        component_stack: payload.componentStack || null,
+        app_state_snapshot: payload.appState as any,
+        device_info: { ...payload.deviceInfo, breadcrumbs: payload.breadcrumbs } as any
       });
 
       if (!error) return; // Success

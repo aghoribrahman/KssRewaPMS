@@ -1,4 +1,4 @@
-import * as React from 'react';
+
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -61,7 +61,7 @@ export function AddUserForm({ onSuccess, onCancel }: AddUserFormProps) {
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
-          id: data.user?.id,
+          id: data.user!.id,
           email: formData.email,
           display_name: formData.displayName,
           role: formData.role,
@@ -78,7 +78,7 @@ export function AddUserForm({ onSuccess, onCancel }: AddUserFormProps) {
             role: formData.role,
             assigned_districts: formData.districts,
           })
-          .eq('id', data.user?.id);
+          .eq('id', data.user!.id);
       }
 
       toast.success(`User ${formData.displayName} created! Password: ${formData.password}`);
@@ -156,7 +156,7 @@ export function AddUserForm({ onSuccess, onCancel }: AddUserFormProps) {
           <div className="space-y-6">
             <div className="space-y-2">
               <Label>System Role</Label>
-              <Select value={formData.role} onValueChange={(val: UserRole) => setFormData({...formData, role: val})}>
+              <Select value={formData.role} onValueChange={(val: string | null) => val && setFormData({...formData, role: val as UserRole})}>
                 <SelectTrigger className="h-12 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>

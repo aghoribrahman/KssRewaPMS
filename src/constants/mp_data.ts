@@ -122,7 +122,13 @@ export const TRANSLATIONS = {
     deliveryQueued: "Delivery queued!",
     registrationQueued: "Registration queued!",
     notes: "Notes",
-    enterNotes: "Enter delivery notes..."
+    enterNotes: "Enter delivery notes...",
+    needsCorrection: "Needs Correction",
+    escalated: "Escalated",
+    returnToRegistrar: "Return to Registrar",
+    escalate: "Escalate",
+    patientDirectory: "Patient Directory",
+    patientRecord: "Patient Record"
   },
   hi: {
     dashboard: "डैशबोर्ड",
@@ -236,6 +242,12 @@ export const TRANSLATIONS = {
     deliveryQueued: "वितरण कतार में!",
     registrationQueued: "पंजीकरण कतार में!",
     notes: "टिप्पणियाँ",
-    enterNotes: "वितरण नोट्स दर्ज करें..."
+    enterNotes: "वितरण नोट्स दर्ज करें...",
+    needsCorrection: "सुधार आवश्यक",
+    escalated: "एस्केलेटेड",
+    returnToRegistrar: "रजिस्ट्रार को वापस करें",
+    escalate: "एस्केलेट करें",
+    patientDirectory: "मरीज निर्देशिका",
+    patientRecord: "मरीज रिकॉर्ड"
   }
 };

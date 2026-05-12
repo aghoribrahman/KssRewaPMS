@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Camera, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ImageUploadProps {
@@ -30,7 +30,7 @@ export function ImageUpload({ onUploadComplete, folder, label = "Upload Image" }
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${folder}/${fileName}`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('images')
         .upload(filePath, file);
 

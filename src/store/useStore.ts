@@ -25,10 +25,10 @@ interface SyncItem {
 
 interface ErrorLogItem {
   id: string;
-  userId?: string;
+  userId?: string | null;
   message: string;
-  stack?: string;
-  componentStack?: string;
+  stack?: string | null;
+  componentStack?: string | null;
   deviceInfo: any;
   appState?: any;
   breadcrumbs?: any[];
@@ -141,6 +141,15 @@ export const useStore = create<AppState>()(
             
           if (error) throw error;
           
+          // Compute visit counts per master record from the fetched dataset
+          const visitCounts: Record<string, number> = {};
+          (data as any[]).forEach(v => {
+            const master = Array.isArray(v.patient_master) ? v.patient_master[0] : v.patient_master;
+            if (master && master.id) {
+              visitCounts[master.id] = (visitCounts[master.id] || 0) + 1;
+            }
+          });
+
           // Flatten the data to match the legacy 'Patient' interface for the UI components
           const flattenedData = (data as any[]).map(v => {
             // Defensive check for patient_master (could be object or array depending on PostgREST version/schema)
@@ -156,6 +165,7 @@ export const useStore = create<AppState>()(
               ...master,
               id: v.id, // Keep the visit ID as the primary ID for the UI
               master_patient_id: master.id,
+              visit_count: visitCounts[master.id] || 1,
               district: master.district,
               name: master.name,
               contact: master.contact,
@@ -189,12 +199,12 @@ export const useStore = create<AppState>()(
         if (nextError) {
           try {
             const { error } = await supabase.from('app_errors').insert({
-              user_id: nextError.userId,
+              user_id: nextError.userId || null,
               error_message: nextError.message,
-              error_stack: nextError.stack,
-              component_stack: nextError.componentStack,
-              device_info: nextError.deviceInfo,
-              app_state_snapshot: nextError.appState,
+              error_stack: nextError.stack || null,
+              component_stack: nextError.componentStack || null,
+              device_info: (nextError.deviceInfo || null) as any,
+              app_state_snapshot: (nextError.appState || null) as any,
             });
             if (!error) {
               removeFromErrors(nextError.id);
@@ -311,7 +321,15 @@ export const useStore = create<AppState>()(
           setTimeout(() => get().processSyncQueue(), 0);
         } catch (err: any) {
           console.error('Sync failed for item:', nextItem.id, err);
-          updateSyncStatus(nextItem.id, 'FAILED', err.message);
+          let errorMessage = err.message || 'Unknown sync error';
+          if (errorMessage.includes('PGRST116') || errorMessage.includes('not found')) {
+            errorMessage = 'Record not found on server / deleted.';
+          } else if (errorMessage.includes('invalid input syntax')) {
+            errorMessage = 'Invalid data format provided.';
+          } else if (errorMessage.includes('uq_patient_master')) {
+            errorMessage = 'Duplicate patient record detected.';
+          }
+          updateSyncStatus(nextItem.id, 'FAILED', errorMessage);
           // Don't loop infinitely on failure
         }
       },
@@ -366,7 +384,7 @@ export const useUnifiedPatients = (districtFilter?: string[]) => {
 
     // 4. Apply district filtering globally to both synced and pending data
     if (districtFilter && districtFilter.length > 0) {
-      result = result.filter(p => districtFilter.includes(p.district));
+      result = result.filter(p => p.district && districtFilter.includes(p.district));
     }
 
     return result;

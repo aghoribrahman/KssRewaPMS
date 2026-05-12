@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 
 function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+  const err = error as any;
   let translations: any = null;
   try {
     translations = useTranslation();
@@ -36,8 +37,8 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 
   const copyToClipboard = () => {
     const diagnosticInfo = {
-      message: error.message,
-      stack: error.stack,
+      message: err.message,
+      stack: err.stack,
       url: window.location.href,
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
@@ -76,7 +77,7 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
             <div className="bg-neutral-50 rounded-2xl p-4 border border-neutral-100">
               <p className="text-sm font-mono text-neutral-600 break-words">
                 <span className="font-bold text-rose-600 mr-2">Error:</span>
-                {error.message}
+                {err.message}
               </p>
             </div>
 
@@ -135,7 +136,7 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
                 >
                   <div className="bg-neutral-900 rounded-2xl p-6 mt-2 overflow-x-auto">
                     <pre className="text-xs text-neutral-400 font-mono leading-relaxed">
-                      {error.stack}
+                      {err.stack}
                     </pre>
                   </div>
                 </motion.div>
@@ -163,7 +164,7 @@ export function GlobalErrorBoundary({ children }: { children: React.ReactNode })
     // Context not available
   }
 
-  const handleOnError = (error: Error, info: { componentStack: string }) => {
+  const handleOnError = (error: any, info: any) => {
     // Attempt to log the error to Supabase
     logError({
       message: error.message,

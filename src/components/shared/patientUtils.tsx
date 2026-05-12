@@ -34,6 +34,10 @@ export function getStatusColorClass(status: PatientStatus): string {
       return 'bg-blue-100 text-blue-600';
     case 'complete':
       return 'bg-emerald-100 text-emerald-600';
+    case 'needs_correction':
+      return 'bg-amber-100 text-amber-700 border border-amber-200';
+    case 'escalated':
+      return 'bg-rose-100 text-rose-700 border border-rose-200 animate-pulse';
     default:
       return 'bg-neutral-100 text-neutral-600';
   }

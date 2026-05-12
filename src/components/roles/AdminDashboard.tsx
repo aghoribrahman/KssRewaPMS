@@ -1,7 +1,5 @@
-import * as React from 'react';
 import { useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { Patient } from '../../types';
 import { usePatients } from '../../hooks/usePatients';
 import { Badge } from '@/components/ui/badge';
 import { Shield } from 'lucide-react';
@@ -16,7 +14,7 @@ import { getSharedPatientColumns } from '../shared/PatientColumns';
 import { useDashboardHelper } from '../../hooks/useDashboardHelper';
 
 export default function AdminDashboard() {
-  const { profile } = useAuth();
+  useAuth();
   const { patients, isOffline } = usePatients({ realtime: true });
   
   const {
@@ -31,7 +29,7 @@ export default function AdminDashboard() {
   const stats = useDashboardStats({ patients, role: 'admin', lang });
 
   const columns = useMemo(() => 
-    getSharedPatientColumns(t, setSelectedPatient, lang, 'admin'),
+    getSharedPatientColumns(t, setSelectedPatient, lang),
     [t, lang, setSelectedPatient]
   );
 

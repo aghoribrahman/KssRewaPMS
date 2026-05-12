@@ -21,22 +21,24 @@ export type PatientVisit = Database['public']['Tables']['patient_visits']['Row']
 export interface Patient extends PatientMaster, PatientVisit {
   id: string; // PatientVisit ID
   master_patient_id: string; // PatientMaster ID
+  visit_count?: number; // Total number of visits mapped to this master record
+  is_offline_pending?: boolean; // For visual offline sync indicators
 }
 
 export interface VisitHistoryItem {
   id: string;
-  created_at: string;
-  status: PatientStatus;
+  created_at?: string | null;
+  status?: PatientStatus | null;
   consultant_advice?: string | null;
   symptoms?: string[] | null;
   registrar_name?: string | null;
   consultant_name?: string | null;
   meal_distributor_name?: string | null;
-  meal_required: boolean;
+  meal_required?: boolean | null;
   meal_served_at?: string | null;
-  medication_hydroxyurea: boolean;
-  medication_folic_acid: boolean;
-  nutrition_kit_distributed: boolean;
+  medication_hydroxyurea?: boolean | null;
+  medication_folic_acid?: boolean | null;
+  nutrition_kit_distributed?: boolean | null;
   consultant_image_url?: string | null;
   meal_image_url?: string | null;
   is_offline_pending?: boolean; // For visual sync status

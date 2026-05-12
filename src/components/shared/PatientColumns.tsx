@@ -1,11 +1,12 @@
-import * as React from 'react';
+
 import { Column } from './GenericTable';
 import { Patient } from '../../types';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { MapPin, Clock } from 'lucide-react';
+import { MapPin, Clock, History, Cloud } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 import { formatTime, formatDate } from '../../lib/dateUtils';
+import { getWaitSeverity, getSlaColor } from '../../lib/slaUtils';
 
 /**
  * Shared column definitions for the PatientDirectory table.
@@ -29,8 +30,16 @@ export const getSharedPatientColumns = (
             )}
           </div>
         </div>
-        <div>
-          <p className="font-bold text-neutral-900 text-sm">{p.name}</p>
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="font-bold text-neutral-900 text-sm">{p.name}</p>
+            {(p as any).visit_count && (p as any).visit_count > 1 ? (
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[9px] px-1.5 py-0 font-black flex items-center gap-1">
+                <History className="w-2.5 h-2.5" />
+                {lang === 'en' ? `Visit #${(p as any).visit_count}` : `विजिट #${(p as any).visit_count}`}
+              </Badge>
+            ) : null}
+          </div>
           <p className="text-xs text-neutral-500">
             {p.age}y • {p.contact}
           </p>
@@ -49,21 +58,43 @@ export const getSharedPatientColumns = (
   },
   {
     header: t.status,
-    accessor: (p) => <StatusBadge status={p.status} />
+    accessor: (p) => p.is_offline_pending ? (
+      <Badge variant="outline" className="bg-neutral-50 text-neutral-600 border-neutral-200 text-xs px-2.5 py-1 font-bold flex items-center gap-1.5 w-fit">
+        <Cloud className="w-3.5 h-3.5 text-neutral-400" />
+        {lang === 'en' ? "Pending Sync" : "सिंक लंबित"}
+      </Badge>
+    ) : (
+      <StatusBadge status={p.status} />
+    )
   },
   {
     header: t.timeAdded,
-    accessor: (p) => (
-      <div className="space-y-0.5">
-        <div className="flex items-center gap-1.5 text-xs text-neutral-900 font-bold">
-          <Clock className="w-3 h-3 text-neutral-400" />
-          {formatTime(p.created_at)}
+    accessor: (p) => {
+      const severity = getWaitSeverity(p.created_at || new Date().toISOString());
+      const slaColor = getSlaColor(severity);
+      let slaText = '';
+      if (severity === 'critical') slaText = lang === 'en' ? '>2h Wait' : '>2 घंटे प्रतीक्षा';
+      else if (severity === 'warning') slaText = lang === 'en' ? '>1h Wait' : '>1 घंटा प्रतीक्षा';
+
+      return (
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5 text-xs text-neutral-900 font-bold">
+            <Clock className="w-3 h-3 text-neutral-400" />
+            {formatTime(p.created_at)}
+          </div>
+          <div className="flex flex-wrap items-center gap-1 pl-4">
+            <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">
+              {formatDate(p.created_at)}
+            </span>
+            {severity !== 'normal' && p.status !== 'complete' && (
+              <Badge variant="outline" className={`text-[9px] px-1.5 py-0 font-bold border ${slaColor}`}>
+                {slaText}
+              </Badge>
+            )}
+          </div>
         </div>
-        <div className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest pl-4">
-          {formatDate(p.created_at)}
-        </div>
-      </div>
-    )
+      );
+    }
   },
   {
     header: t.actions,

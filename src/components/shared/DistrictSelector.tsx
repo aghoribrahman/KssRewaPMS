@@ -1,4 +1,4 @@
-import * as React from 'react';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { buttonVariants } from '../ui/button';
 import { MapPin, Check } from 'lucide-react';

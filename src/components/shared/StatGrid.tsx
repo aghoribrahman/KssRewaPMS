@@ -1,4 +1,4 @@
-import * as React from 'react';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { motion } from 'motion/react';
 import { LucideIcon } from 'lucide-react';

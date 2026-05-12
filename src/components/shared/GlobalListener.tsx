@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { Breadcrumbs } from '../../lib/breadcrumbs';
-import { useAuth } from '../../hooks/useAuth';
 
 /**
  * GlobalListener catches "uncatchable" errors (async, event handlers) 
@@ -10,7 +9,6 @@ import { useAuth } from '../../hooks/useAuth';
  */
 export function GlobalListener({ children }: { children: React.ReactNode }) {
   const { showBoundary } = useErrorBoundary();
-  const { user } = useAuth();
 
   React.useEffect(() => {
     const handleError = (event: ErrorEvent) => {

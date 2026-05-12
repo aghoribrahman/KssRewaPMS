@@ -1,19 +1,19 @@
-import * as React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Activity, Droplets, Stethoscope, History } from 'lucide-react';
+import { Activity, Droplets, Stethoscope } from 'lucide-react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { PatientFormData } from '../../../lib/schemas';
-import { TRANSLATIONS } from '../../../constants/mp_data';
+
 import { Textarea } from '@/components/ui/textarea';
 
 interface SectionProps {
   lang: 'en' | 'hi';
   readOnly?: boolean;
-  disabledFields?: string[];
+  disabledFields?: any[];
+  hiddenFields?: any[];
 }
 
 const RequiredBadge = () => <span className="text-red-500 ml-1 font-bold">*</span>;
@@ -26,8 +26,7 @@ const SYMPTOMS = [
   { id: 'fatigue', en: 'Fatigue / Weakness', hi: 'थकान / कमजोरी' },
 ];
 
-export function MedicalSection({ lang, readOnly, disabledFields = [] }: SectionProps) {
-  const t = TRANSLATIONS[lang];
+export function MedicalSection({ lang, readOnly, hiddenFields = [] }: SectionProps) {
   const { register, control, watch, setValue, formState: { errors } } = useFormContext<PatientFormData>();
   const fieldValue = watch('symptoms') || [];
 
@@ -107,7 +106,8 @@ export function MedicalSection({ lang, readOnly, disabledFields = [] }: SectionP
         </div>
 
         {/* Specialized Sickle Cell Profile */}
-        <div className="pt-6 border-t border-neutral-100 space-y-6">
+        {!hiddenFields.includes('sickle_cell_profile') && (
+          <div className="pt-6 border-t border-neutral-100 space-y-6">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500">
               <Droplets className="w-4 h-4" />
@@ -223,7 +223,8 @@ export function MedicalSection({ lang, readOnly, disabledFields = [] }: SectionP
           </div>
 
           {/* Medications */}
-          <div className="bg-rose-50/20 p-5 rounded-2xl border border-rose-100/30 space-y-4">
+          {!hiddenFields.includes('medications') && (
+            <div className="bg-rose-50/20 p-5 rounded-2xl border border-rose-100/30 space-y-4">
             <div className="flex items-center gap-2 mb-2">
               <Stethoscope className="w-3.5 h-3.5 text-rose-500" />
               <Label className="text-[10px] font-black uppercase tracking-widest text-rose-600">{lang === 'en' ? "Specific SCD Medications" : "विशिष्ट सिकल सेल दवाएं"}</Label>
@@ -300,8 +301,10 @@ export function MedicalSection({ lang, readOnly, disabledFields = [] }: SectionP
                 {lang === 'en' ? "Patient takes medication regularly" : "मरीज नियमित रूप से दवा लेता है"}
               </Label>
             </div>
-          </div>
+            </div>
+          )}
         </div>
+        )}
       </CardContent>
     </Card>
   );

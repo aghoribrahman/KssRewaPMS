@@ -1,7 +1,7 @@
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Activity, User as UserIcon, Shield, Search, Map as MapIcon, Check, Languages, Cloud, RefreshCw, Menu, X } from 'lucide-react';
+import { LogOut, Activity, Search, Map as MapIcon, Check, Languages, Cloud, RefreshCw, Menu, X } from 'lucide-react';
 import { useSyncStatus } from '../store/useStore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserRole } from '../types';

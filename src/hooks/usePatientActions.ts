@@ -59,5 +59,29 @@ export function usePatientActions() {
     }, patientId);
   };
 
-  return { registerPatient, consultPatient, serveMeal, updatePatientRecord };
+  const rejectPatient = (patient: Patient, reason: string) => {
+    const { patient_master, ...cleanPatient } = patient as any;
+    addToSyncQueue('UPDATE', {
+      ...cleanPatient,
+      status: 'needs_correction',
+      consultant_advice: reason,
+      consultant_id: user?.id || null,
+      consultant_name: profile?.display_name || null,
+      ...systemMetadata
+    }, patient.id);
+  };
+
+  const escalatePatient = (patient: Patient, reason: string) => {
+    const { patient_master, ...cleanPatient } = patient as any;
+    addToSyncQueue('UPDATE', {
+      ...cleanPatient,
+      status: 'escalated',
+      consultant_advice: reason,
+      consultant_id: user?.id || null,
+      consultant_name: profile?.display_name || null,
+      ...systemMetadata
+    }, patient.id);
+  };
+
+  return { registerPatient, consultPatient, serveMeal, updatePatientRecord, rejectPatient, escalatePatient };
 }

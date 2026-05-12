@@ -1,6 +1,4 @@
 import { useAuth } from '../hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { LogOut, User as UserIcon, Shield, Activity, ClipboardList, Stethoscope, Utensils } from 'lucide-react';
 import { Navbar } from './Navbar';
 import AdminDashboard from './roles/AdminDashboard';
 import RegistrarDashboard from './roles/RegistrarDashboard';

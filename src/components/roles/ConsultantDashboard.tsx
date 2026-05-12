@@ -22,7 +22,8 @@ import { useDashboardHelper } from '../../hooks/useDashboardHelper';
 export default function ConsultantDashboard() {
   const { profile } = useAuth();
   const { patients, isOffline, isSyncing, pendingCount } = usePatients({ status: 'pending_consultation', realtime: true });
-  const { consultPatient } = usePatientActions();
+  const validPatients = useMemo(() => patients.filter(p => p.master_patient_id && p.name), [patients]);
+  const { consultPatient, rejectPatient, escalatePatient } = usePatientActions();
 
   const {
     selectedPatient,
@@ -48,7 +49,7 @@ export default function ConsultantDashboard() {
     }
   }, [selectedPatient]);
 
-  const stats = useDashboardStats({ patients, role: 'consultant', lang });
+  const stats = useDashboardStats({ patients: validPatients, role: 'consultant', lang });
 
   const handleCompleteReview = async () => {
     if (!selectedPatient) return;
@@ -67,6 +68,52 @@ export default function ConsultantDashboard() {
     try {
       consultPatient(selectedPatient, consultAdvice, consultImage);
       toast.success(lang === 'en' ? "Review queued!" : "समीक्षा कतार में!");
+      setSelectedPatient(null);
+    } catch (error) {
+      toast.error(lang === 'en' ? "Failed to update record" : "रिकॉर्ड अपडेट करने में विफल");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReturnToRegistrar = async () => {
+    if (!selectedPatient) return;
+    const adviceTrimmed = consultAdvice.trim();
+    if (!adviceTrimmed) {
+      toast.error(
+        lang === 'en'
+          ? "Please provide a rejection reason in the notes"
+          : "कृपया नोट्स में अस्वीकृति का कारण प्रदान करें"
+      );
+      return;
+    }
+    setSubmitting(true);
+    try {
+      rejectPatient(selectedPatient, consultAdvice);
+      toast.success(lang === 'en' ? "Returned to Registrar" : "रजिस्ट्रार को वापस कर दिया गया");
+      setSelectedPatient(null);
+    } catch (error) {
+      toast.error(lang === 'en' ? "Failed to update record" : "रिकॉर्ड अपडेट करने में विफल");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEscalate = async () => {
+    if (!selectedPatient) return;
+    const adviceTrimmed = consultAdvice.trim();
+    if (!adviceTrimmed) {
+      toast.error(
+        lang === 'en'
+          ? "Please provide an escalation reason in the notes"
+          : "कृपया नोट्स में एस्केलेशन का कारण प्रदान करें"
+      );
+      return;
+    }
+    setSubmitting(true);
+    try {
+      escalatePatient(selectedPatient, consultAdvice);
+      toast.success(lang === 'en' ? "Case Escalated" : "मामला एस्केलेट किया गया");
       setSelectedPatient(null);
     } catch (error) {
       toast.error(lang === 'en' ? "Failed to update record" : "रिकॉर्ड अपडेट करने में विफल");
@@ -103,7 +150,7 @@ export default function ConsultantDashboard() {
       <StatGrid stats={stats} />
 
       <PatientDirectory
-        patients={patients}
+        patients={validPatients}
         columns={columns}
         onPatientSelect={setSelectedPatient}
         lang={lang}
@@ -148,7 +195,23 @@ export default function ConsultantDashboard() {
           </div>
         }
         actions={
-          <>
+          <div className="flex flex-wrap items-center gap-2 w-full justify-end">
+            <Button 
+              variant="outline"
+              className="border-orange-200 text-orange-600 hover:bg-orange-50 font-bold" 
+              onClick={handleReturnToRegistrar} 
+              disabled={submitting}
+            >
+              {lang === 'en' ? "Return to Registrar" : "रजिस्ट्रार को वापस करें"}
+            </Button>
+            <Button 
+              variant="outline"
+              className="border-red-200 text-red-600 hover:bg-red-50 font-bold" 
+              onClick={handleEscalate} 
+              disabled={submitting}
+            >
+              {lang === 'en' ? "Escalate" : "एस्केलेट करें"}
+            </Button>
             <Button 
               variant="premium"
               className="p-4 text-sm group" 
@@ -157,7 +220,7 @@ export default function ConsultantDashboard() {
             >
               {submitting ? "Processing..." : t.completeReview}
             </Button>
-          </>
+          </div>
         }
       />
     </DashboardLayout>

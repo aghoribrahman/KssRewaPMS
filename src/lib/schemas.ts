@@ -65,7 +65,7 @@ export const PatientSchema = z.object({
   referral: z.array(z.string()).default([]),
 
   // Workflow Status
-  status: z.enum(['pending_consultation', 'pending_meal', 'complete']).default('pending_consultation'),
+  status: z.enum(['pending_consultation', 'pending_meal', 'complete', 'needs_correction', 'escalated']).default('pending_consultation'),
 
   feedback_confirmation: z.boolean().default(false),
   specific_concerns: z.string().optional(),

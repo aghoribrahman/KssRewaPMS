@@ -1,5 +1,4 @@
-import * as React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,7 +11,8 @@ import { PatientFormData } from '../../../lib/schemas';
 interface SectionProps {
   lang: 'en' | 'hi';
   readOnly?: boolean;
-  disabledFields?: string[];
+  disabledFields?: any[];
+  hiddenFields?: any[];
 }
 
 const RequiredBadge = () => <span className="text-red-500 ml-1 font-bold">*</span>;
@@ -37,7 +37,6 @@ export function IdentitySection({ lang, readOnly, disabledFields = [] }: Section
                 folder="patients" 
                 onUploadComplete={field.onChange}
                 label={lang === 'en' ? 'Capture Photo' : 'फोटो लें'}
-                readOnly={readOnly}
               />
             )}
           />

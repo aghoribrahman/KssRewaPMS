@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
-import { Utensils, CheckCircle2, Clock, MapPin, User, Search } from 'lucide-react';
+import { Utensils, CheckCircle2, Clock, MapPin, User, Search, History } from 'lucide-react';
 
 import { DashboardLayout } from '../shared/DashboardLayout';
 import { DashboardHeader } from '../shared/DashboardHeader';
@@ -67,6 +67,15 @@ export default function MealDistributorDashboard() {
       return;
     }
 
+    if (!mealImage || !mealImage.trim()) {
+      toast.error(
+        lang === 'en'
+          ? "A delivery photo is required to confirm meal distribution"
+          : "भोजन वितरण की पुष्टि के लिए एक फोटो आवश्यक है"
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       serveMeal(selectedPatient, mealNotes, mealImage);
@@ -118,10 +127,18 @@ export default function MealDistributorDashboard() {
             <Card key={p.id} className="rounded-3xl border-none shadow-xl shadow-neutral-200/40 overflow-hidden group hover:shadow-2xl transition-all duration-300 bg-white">
               <div className="h-2 bg-primary w-full" />
               <CardHeader className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-xl font-bold text-neutral-900">{p.name}</h3>
-                    <p className="text-sm text-neutral-500 flex items-center gap-1 mt-1 font-medium">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-xl font-bold text-neutral-900">{p.name}</h3>
+                      {(p as any).visit_count && (p as any).visit_count > 1 ? (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-2 py-0.5 font-black flex items-center gap-1">
+                          <History className="w-3 h-3" />
+                          {lang === 'en' ? `Visit #${(p as any).visit_count}` : `विजिट #${(p as any).visit_count}`}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <p className="text-sm text-neutral-500 flex items-center gap-1 font-medium">
                       <MapPin className="w-3 h-3" />
                       {p.district}
                     </p>

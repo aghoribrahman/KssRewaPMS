@@ -52,7 +52,7 @@ export function usePatientHistory(patient: Patient | null) {
         // 3. Merge and deduplicate (favoring local for pending updates)
         const combined = [...localPending, ...(serverData || [])]
           .filter((v, i, a) => a.findIndex(t => t.id === v.id) === i)
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          .sort((a, b) => new Date(b.created_at || Date.now()).getTime() - new Date(a.created_at || Date.now()).getTime());
 
         setHistory(combined);
       } catch (err: any) {

@@ -76,8 +76,8 @@ export function PatientSummary({ patient, className }: PatientSummaryProps) {
         { label: t.fullName, value: patient.name },
         { label: t.age, value: `${patient.age} ${lang === 'en' ? 'years' : 'साल'}` },
         { label: t.gender, value: patient.gender === 'male' ? (lang === 'en' ? 'Male' : 'पुरुष') : (lang === 'en' ? 'Female' : 'महिला') },
-        { label: t.contact, value: maskSensitiveData(patient.contact, 'contact', isVisitor) },
-        { label: t.abhaId, value: maskSensitiveData(patient.abha_id || patient.aadhar_number, 'id', isVisitor) },
+        { label: t.contact, value: maskSensitiveData(patient.contact || undefined, 'contact', isVisitor) },
+        { label: t.abhaId, value: maskSensitiveData((patient.abha_id || patient.aadhar_number) || undefined, 'id', isVisitor) },
       ]
     },
     {
