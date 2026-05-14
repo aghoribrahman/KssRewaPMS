@@ -128,7 +128,8 @@ export const TRANSLATIONS = {
     returnToRegistrar: "Return to Registrar",
     escalate: "Escalate",
     patientDirectory: "Patient Directory",
-    patientRecord: "Patient Record"
+    patientRecord: "Patient Record",
+    updateDetails: "Update Details"
   },
   hi: {
     dashboard: "डैशबोर्ड",
@@ -248,6 +249,7 @@ export const TRANSLATIONS = {
     returnToRegistrar: "रजिस्ट्रार को वापस करें",
     escalate: "एस्केलेट करें",
     patientDirectory: "मरीज निर्देशिका",
-    patientRecord: "मरीज रिकॉर्ड"
+    patientRecord: "मरीज रिकॉर्ड",
+    updateDetails: "विवरण अपडेट करें"
   }
 };

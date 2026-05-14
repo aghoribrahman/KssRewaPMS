@@ -8,6 +8,7 @@ import { PatientSummary } from '../PatientSummary';
 import { CounsellingForm } from '../CounsellingForm';
 import { TRANSLATIONS } from '../../constants/mp_data';
 import { DialogFooter } from './DialogFooter';
+import { CounsellingFormHandle } from '../CounsellingForm';
 
 interface PatientDetailsDialogProps {
   patient: Patient | null;
@@ -21,6 +22,8 @@ interface PatientDetailsDialogProps {
   readOnly?: boolean;
   disabledFields?: string[];
   onFormSubmit?: (data: any) => void;
+  submitLabel?: string;
+  formRef?: React.RefObject<CounsellingFormHandle | null>;
 }
 
 export function PatientDetailsDialog({
@@ -35,6 +38,8 @@ export function PatientDetailsDialog({
   readOnly = true,
   disabledFields = [],
   onFormSubmit,
+  submitLabel,
+  formRef,
 }: PatientDetailsDialogProps) {
   const t = TRANSLATIONS[lang];
 
@@ -84,21 +89,24 @@ export function PatientDetailsDialog({
 
               <div className="flex-1 overflow-y-auto p-3 md:p-4 bg-neutral-50/30">
                 <div className="max-w-7xl mx-auto space-y-3 md:space-y-4 pb-40 md:pb-24">
-                  <TabsContent value="summary" className="focus-visible:outline-none mt-0">
+                  <TabsContent value="summary" className="focus-visible:outline-none mt-0" keepMounted>
                     <PatientSummary patient={patient as any} />
                   </TabsContent>
 
-                  <TabsContent value="form" className="focus-visible:outline-none">
+                  <TabsContent value="form" className="focus-visible:outline-none" keepMounted>
                     <CounsellingForm
+                      ref={formRef}
                       data={patient || {}}
                       readOnly={readOnly}
                       disabledFields={disabledFields}
                       onSubmit={onFormSubmit}
+                      submitLabel={submitLabel}
+                      cancelLabel={t.cancel}
                     />
                   </TabsContent>
 
                   {actionContent && (
-                    <TabsContent value="action" className="focus-visible:outline-none">
+                    <TabsContent value="action" className="focus-visible:outline-none" keepMounted>
                       {actionContent}
                     </TabsContent>
                   )}

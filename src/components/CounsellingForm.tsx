@@ -24,7 +24,12 @@ interface CounsellingFormProps {
   hiddenFields?: any[];
 }
 
-export function CounsellingForm({ 
+export interface CounsellingFormHandle {
+  getValues: () => PatientFormData;
+  submit: () => void;
+}
+
+export const CounsellingForm = React.forwardRef<CounsellingFormHandle, CounsellingFormProps>(({ 
   data, 
   onSubmit = () => {}, 
   onCancel, 
@@ -34,7 +39,7 @@ export function CounsellingForm({
   readOnly = false,
   disabledFields = [],
   hiddenFields = []
-}: CounsellingFormProps) {
+}, ref) => {
   const { profile } = useAuth();
   const lang = (profile?.preferred_language as 'en' | 'hi') || 'hi';
 
@@ -44,6 +49,11 @@ export function CounsellingForm({
   });
 
   const { handleSubmit, reset, watch, formState: { isSubmitting } } = methods;
+
+  React.useImperativeHandle(ref, () => ({
+    getValues: () => methods.getValues(),
+    submit: () => handleSubmit(onSubmit as any)(),
+  }));
   const contact = watch('contact');
   const lastContactRef = React.useRef(contact);
 
@@ -137,4 +147,4 @@ export function CounsellingForm({
       </form>
     </FormProvider>
   );
-}
+});

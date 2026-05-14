@@ -18,6 +18,9 @@ import { usePatientActions } from '../../hooks/usePatientActions';
 import { ImageUpload } from '../ImageUpload';
 import { getSharedPatientColumns } from '../shared/PatientColumns';
 import { useDashboardHelper } from '../../hooks/useDashboardHelper';
+import { GlobalErrorBoundary } from '../shared/GlobalErrorBoundary';
+import { CounsellingFormHandle } from '../CounsellingForm';
+import { Patient } from '../../types';
 
 export default function ConsultantDashboard() {
   const { profile } = useAuth();
@@ -37,6 +40,7 @@ export default function ConsultantDashboard() {
   const [consultAdvice, setConsultAdvice] = React.useState('');
   const [consultImage, setConsultImage] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
+  const formRef = React.useRef<CounsellingFormHandle>(null);
 
   // Reset review state when patient changes
   useEffect(() => {
@@ -54,6 +58,11 @@ export default function ConsultantDashboard() {
   const handleCompleteReview = async () => {
     if (!selectedPatient) return;
 
+    // Capture any pending edits from the details form
+    const currentFormData = formRef.current?.getValues();
+    const patientToConsult = currentFormData ? { ...selectedPatient, ...currentFormData } : selectedPatient;
+
+
     const adviceTrimmed = consultAdvice.trim();
     if (adviceTrimmed.length < 10) {
       toast.error(
@@ -66,7 +75,7 @@ export default function ConsultantDashboard() {
 
     setSubmitting(true);
     try {
-      consultPatient(selectedPatient, consultAdvice, consultImage);
+      consultPatient(patientToConsult as Patient, consultAdvice, consultImage);
       toast.success(lang === 'en' ? "Review queued!" : "समीक्षा कतार में!");
       setSelectedPatient(null);
     } catch (error) {
@@ -78,6 +87,10 @@ export default function ConsultantDashboard() {
 
   const handleReturnToRegistrar = async () => {
     if (!selectedPatient) return;
+    
+    const currentFormData = formRef.current?.getValues();
+    const patientToReject = currentFormData ? { ...selectedPatient, ...currentFormData } : selectedPatient;
+
     const adviceTrimmed = consultAdvice.trim();
     if (!adviceTrimmed) {
       toast.error(
@@ -89,7 +102,7 @@ export default function ConsultantDashboard() {
     }
     setSubmitting(true);
     try {
-      rejectPatient(selectedPatient, consultAdvice);
+      rejectPatient(patientToReject as Patient, consultAdvice);
       toast.success(lang === 'en' ? "Returned to Registrar" : "रजिस्ट्रार को वापस कर दिया गया");
       setSelectedPatient(null);
     } catch (error) {
@@ -101,6 +114,10 @@ export default function ConsultantDashboard() {
 
   const handleEscalate = async () => {
     if (!selectedPatient) return;
+    
+    const currentFormData = formRef.current?.getValues();
+    const patientToEscalate = currentFormData ? { ...selectedPatient, ...currentFormData } : selectedPatient;
+
     const adviceTrimmed = consultAdvice.trim();
     if (!adviceTrimmed) {
       toast.error(
@@ -112,7 +129,7 @@ export default function ConsultantDashboard() {
     }
     setSubmitting(true);
     try {
-      escalatePatient(selectedPatient, consultAdvice);
+      escalatePatient(patientToEscalate as Patient, consultAdvice);
       toast.success(lang === 'en' ? "Case Escalated" : "मामला एस्केलेट किया गया");
       setSelectedPatient(null);
     } catch (error) {
@@ -147,16 +164,20 @@ export default function ConsultantDashboard() {
         }
       />
 
-      <StatGrid stats={stats} />
+      <GlobalErrorBoundary variant="inline" name="Consultant Stats">
+        <StatGrid stats={stats} />
+      </GlobalErrorBoundary>
 
-      <PatientDirectory
-        patients={validPatients}
-        columns={columns}
-        onPatientSelect={setSelectedPatient}
-        lang={lang}
-        title={t.waitConsultation}
-        description={lang === 'en' ? "Patients awaiting clinical evaluation." : "नैदानिक मूल्यांकन की प्रतीक्षा कर रहे मरीज।"}
-      />
+      <GlobalErrorBoundary variant="card" name="Clinical Review Directory">
+        <PatientDirectory
+          patients={validPatients}
+          columns={columns}
+          onPatientSelect={setSelectedPatient}
+          lang={lang}
+          title={t.waitConsultation}
+          description={lang === 'en' ? "Patients awaiting clinical evaluation." : "नैदानिक मूल्यांकन की प्रतीक्षा कर रहे मरीज।"}
+        />
+      </GlobalErrorBoundary>
 
       <PatientDetailsDialog
         patient={selectedPatient}
@@ -165,6 +186,8 @@ export default function ConsultantDashboard() {
         readOnly={false}
         disabledFields={['name', 'contact', 'district', 'block', 'village', 'address', 'abha_id']}
         onFormSubmit={handleUpdatePatient}
+        formRef={formRef}
+        submitLabel={t.updateDetails}
         subtitle={t.clinicalReviewDetail}
         actionTabTitle={t.clinicalReview}
         actionContent={

@@ -12,6 +12,7 @@ import { PatientDetailsDialog } from '../shared/PatientDetailsDialog';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
 import { getSharedPatientColumns } from '../shared/PatientColumns';
 import { useDashboardHelper } from '../../hooks/useDashboardHelper';
+import { GlobalErrorBoundary } from '../shared/GlobalErrorBoundary';
 
 export default function AdminDashboard() {
   useAuth();
@@ -50,16 +51,20 @@ export default function AdminDashboard() {
         }
       />
 
-      <StatGrid stats={stats} />
+      <GlobalErrorBoundary variant="inline" name="Admin Analytics Stats">
+        <StatGrid stats={stats} />
+      </GlobalErrorBoundary>
 
-      <PatientDirectory 
-        patients={patients}
-        columns={columns}
-        onPatientSelect={setSelectedPatient}
-        lang={lang}
-        title={t.patientData}
-        description={t.patientHistory}
-      />
+      <GlobalErrorBoundary variant="card" name="Admin Patient Database">
+        <PatientDirectory 
+          patients={patients}
+          columns={columns}
+          onPatientSelect={setSelectedPatient}
+          lang={lang}
+          title={t.patientData}
+          description={t.patientHistory}
+        />
+      </GlobalErrorBoundary>
 
       <PatientDetailsDialog 
         patient={selectedPatient}

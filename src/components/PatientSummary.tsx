@@ -173,8 +173,13 @@ export function PatientSummary({ patient, className }: PatientSummaryProps) {
             <BookOpen className="w-3 h-3 text-sky-500" />
             <h3 className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider">Counselling</h3>
           </div>
-          <CardContent className="p-3 text-[11px] font-medium text-neutral-600 line-clamp-2">
-             {patient.counselling_topics?.length || 0} topics discussed
+          <CardContent className="p-3 flex flex-wrap gap-1">
+            {patient.counselling_topics?.map(t => (
+              <Badge key={t} variant="secondary" className="text-[8px] uppercase font-bold py-0 bg-sky-50 text-sky-700 border-sky-100 hover:bg-sky-100">{t}</Badge>
+            ))}
+            {(!patient.counselling_topics || patient.counselling_topics.length === 0) && (
+              <p className="text-neutral-400 italic text-[11px]">No topics discussed</p>
+            )}
           </CardContent>
         </Card>
       </div>

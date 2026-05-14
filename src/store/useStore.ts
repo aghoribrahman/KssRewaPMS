@@ -270,7 +270,13 @@ export const useStore = create<AppState>()(
               'other_health_issues', 'medication_hydroxyurea', 'dosage_hydroxyurea',
               'medication_folic_acid', 'dosage_folic_acid', 'other_medications',
               'medication_regularity', 'dietary_habit', 'daily_water_intake', 'physical_activity',
-              'referral', 'feedback_confirmation'
+              'referral', 'feedback_confirmation', 'weight', 'bp'
+            ];
+
+            const masterColumns = [
+              'name', 'age', 'gender', 'contact', 'address', 'district', 'block', 'village',
+              'abha_id', 'aadhar_number', 'sickle_cell_status', 'pre_existing_diagnosis',
+              'date_of_diagnosis'
             ];
 
             const filteredVisitData: any = {};
@@ -280,10 +286,18 @@ export const useStore = create<AppState>()(
               }
             });
 
+            const filteredMasterData: any = {};
+            masterColumns.forEach(col => {
+              if (nextItem.data[col as keyof Patient] !== undefined) {
+                filteredMasterData[col] = nextItem.data[col as keyof Patient];
+              }
+            });
+
             if (!nextItem.patientId) {
               throw new Error('Missing patient ID for update');
             }
 
+            // 1. Update Visit Record
             const { error: updateErr, status: respStatus } = await supabase.from('patient_visits')
               .update({ 
                 ...filteredVisitData, 
@@ -301,7 +315,25 @@ export const useStore = create<AppState>()(
                 return;
             }
             
-            error = updateErr;
+            if (updateErr) throw updateErr;
+
+            // 2. Update Master Record if master data present and we have master_patient_id
+            const masterId = nextItem.data.master_patient_id;
+            if (Object.keys(filteredMasterData).length > 0 && masterId) {
+              const { error: masterErr } = await supabase.from('patient_master')
+                .update({
+                  ...filteredMasterData,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', masterId);
+              
+              if (masterErr) {
+                console.error('Failed to update master record during sync:', masterErr);
+                // We don't fail the whole sync if master fails, but we log it
+                // Actually, maybe we should throw to retry?
+                throw masterErr;
+              }
+            }
           }
 
           if (error) throw error;

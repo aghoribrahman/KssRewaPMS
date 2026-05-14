@@ -8,6 +8,7 @@ interface ErrorDetails {
   componentStack?: string;
   userId?: string;
   state?: any;
+  componentName?: string;
 }
 
 // Simple hash map for deduplication to prevent flooding
@@ -45,8 +46,12 @@ function redactPII(obj: any): any {
 /**
  * Logs an application error with full context and persistent fallback.
  */
-export async function logError({ message, stack, componentStack, userId, state }: ErrorDetails) {
+export async function logError({ message, stack, componentStack, userId, state, componentName }: ErrorDetails) {
   try {
+    // 0. Log Breadcrumb
+    if (componentName) {
+      Breadcrumbs.add('system', `Error Boundary Hit: ${componentName}`, { message });
+    }
     // 1. Deduplication
     const errorHash = `${message}-${componentStack || ''}`;
     const now = Date.now();
@@ -86,7 +91,11 @@ export async function logError({ message, stack, componentStack, userId, state }
         error_stack: payload.stack || null,
         component_stack: payload.componentStack || null,
         app_state_snapshot: payload.appState as any,
-        device_info: { ...payload.deviceInfo, breadcrumbs: payload.breadcrumbs } as any
+        device_info: { 
+          ...payload.deviceInfo, 
+          breadcrumbs: payload.breadcrumbs,
+          componentName: componentName || 'Unknown'
+        } as any
       });
 
       if (!error) return; // Success

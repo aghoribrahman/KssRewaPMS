@@ -20,6 +20,7 @@ import { getSharedPatientColumns } from '../shared/PatientColumns';
 import { useDashboardHelper } from '../../hooks/useDashboardHelper';
 import { usePatientLookup } from '../../hooks/usePatientLookup';
 import { AutoFillDiff } from '../shared/AutoFillDiff';
+import { GlobalErrorBoundary } from '../shared/GlobalErrorBoundary';
 
 interface RegistrarDashboardProps {
   onImmersiveChange?: (immersive: boolean) => void;
@@ -142,7 +143,9 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
 
       {!isRegistering ? (
         <div className="space-y-8">
-          <StatGrid stats={stats} />
+          <GlobalErrorBoundary variant="inline" name="Registrar Stats">
+            <StatGrid stats={stats} />
+          </GlobalErrorBoundary>
 
           {needsCorrectionPatients.length > 0 && (
             <div className="bg-orange-50/50 border border-orange-100 rounded-3xl p-4 md:p-6 space-y-4">
@@ -161,25 +164,29 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
                   {needsCorrectionPatients.length}
                 </span>
               </div>
-              <PatientDirectory 
-                patients={needsCorrectionPatients}
-                columns={columns}
-                onPatientSelect={setSelectedPatient}
-                lang={lang}
-                title=""
-                description=""
-              />
+              <GlobalErrorBoundary variant="card" name="Correction Directory">
+                <PatientDirectory 
+                  patients={needsCorrectionPatients}
+                  columns={columns}
+                  onPatientSelect={setSelectedPatient}
+                  lang={lang}
+                  title=""
+                  description=""
+                />
+              </GlobalErrorBoundary>
             </div>
           )}
 
-          <PatientDirectory 
-            patients={pendingConsultationPatients}
-            columns={columns}
-            onPatientSelect={setSelectedPatient}
-            lang={lang}
-            title={t.patientDirectory}
-            description={lang === 'en' ? "Manage and track recently registered patients." : "हाल ही में पंजीकृत मरीजों का प्रबंधन करें।"}
-          />
+          <GlobalErrorBoundary variant="card" name="Main Patient Directory">
+            <PatientDirectory 
+              patients={pendingConsultationPatients}
+              columns={columns}
+              onPatientSelect={setSelectedPatient}
+              lang={lang}
+              title={t.patientDirectory}
+              description={lang === 'en' ? "Manage and track recently registered patients." : "हाल ही में पंजीकृत मरीजों का प्रबंधन करें।"}
+            />
+          </GlobalErrorBoundary>
         </div>
       ) : (
         <div className="animate-in fade-in duration-200 space-y-4">
@@ -199,15 +206,17 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
             />
           )}
 
-          <CounsellingForm
-            data={formData}
-            onContactChange={handleContactChange}
-            onSubmit={handleRegister}
-            onCancel={() => setIsRegistering(false)}
-            submitLabel={t.confirmRegistration}
-            cancelLabel={t.cancel}
-            hiddenFields={['counselling']}
-          />
+          <GlobalErrorBoundary variant="card" name="Counselling Registration Form">
+            <CounsellingForm
+              data={formData}
+              onContactChange={handleContactChange}
+              onSubmit={handleRegister}
+              onCancel={() => setIsRegistering(false)}
+              submitLabel={t.confirmRegistration}
+              cancelLabel={t.cancel}
+              hiddenFields={['counselling']}
+            />
+          </GlobalErrorBoundary>
         </div>
       )}
 
@@ -221,6 +230,7 @@ export default function RegistrarDashboard({ onImmersiveChange }: RegistrarDashb
           handleUpdatePatient({ ...data, status: 'pending_consultation' });
           closeDialog();
         }}
+        submitLabel={t.updateDetails}
         subtitle={selectedPatient?.status === 'needs_correction' ? (lang === 'en' ? "Correction Required" : "सुधार आवश्यक") : undefined}
         actionTabTitle={selectedPatient?.status === 'needs_correction' ? (lang === 'en' ? "Consultant Feedback" : "परामर्शदाता की प्रतिक्रिया") : undefined}
         actionContent={
